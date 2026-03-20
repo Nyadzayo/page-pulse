@@ -22,7 +22,7 @@ export const TIER_LIMITS = {
   },
   [TIERS.PRO]: {
     maxMonitors: 50,
-    minIntervalMs: 900000,
+    minIntervalMs: 300000,
     historyRetentionMs: 7776000000,
     maxManualChecksPerDay: Infinity,
   },
@@ -47,6 +47,7 @@ export const DEFAULT_SETTINGS = {
 };
 
 export const INTERVALS = [
+  { label: '5 minutes', ms: 300000, proOnly: true },
   { label: '15 minutes', ms: 900000, proOnly: true },
   { label: '30 minutes', ms: 1800000, proOnly: true },
   { label: '1 hour', ms: 3600000, proOnly: false },

@@ -74,6 +74,7 @@ async function runTick() {
   const now = Date.now();
 
   const due = filterDueMonitors(monitors, now);
+  console.log(`[PagePulse] Tick: ${Object.keys(monitors).length} monitors, ${due.length} due`);
   if (due.length === 0) return;
 
   const urlGroups = groupByUrl(due);
@@ -125,8 +126,11 @@ async function runTick() {
       const updates = processCheckResults(monitor, result, now);
 
       if (updates.changed && updates.historyEntry) {
+        console.log(`[PagePulse] Change detected: "${monitor.label}" — old: "${updates.historyEntry.old?.substring(0, 50)}" → new: "${updates.historyEntry.new?.substring(0, 50)}"`);
         await appendHistory(monitor.id, updates.historyEntry, settings.tier);
         changes.push({ monitor, newValue: updates.historyEntry.new });
+      } else {
+        console.log(`[PagePulse] No change for "${monitor.label}" (matched by: ${result.matchedBy})`);
       }
 
       const { changed, historyEntry, ...storageUpdates } = updates;
@@ -137,8 +141,12 @@ async function runTick() {
   await closeOffscreen();
 
   // Fire notifications
-  if (changes.length > 0 && settings.notificationsEnabled) {
-    await notifyBatch(changes);
+  if (changes.length > 0) {
+    console.log(`[PagePulse] ${changes.length} change(s) detected, notificationsEnabled: ${settings.notificationsEnabled}`);
+    if (settings.notificationsEnabled) {
+      await notifyBatch(changes);
+      console.log(`[PagePulse] Notifications fired`);
+    }
   }
 }
 
