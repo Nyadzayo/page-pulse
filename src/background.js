@@ -1,18 +1,25 @@
-import { getMonitors, getSettings, updateMonitor, saveMonitor, appendHistory, getMonitor } from './lib/storage.js';
+import { getMonitors, getSettings, updateMonitor, updateSettings, saveMonitor, appendHistory, getMonitor } from './lib/storage.js';
 import { filterDueMonitors, groupByUrl, processCheckResults, limitUrlBatch } from './lib/scheduler.js';
 import { hasOriginAccess, extractOrigin } from './lib/permissions.js';
 import { notifyBatch } from './lib/notifications.js';
 import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS } from './lib/constants.js';
 import ExtPay from 'extpay';
 
-const extpay = ExtPay('pagepulse'); // Replace 'pagepulse' with actual ExtensionPay ID when registered
-extpay.startBackground();
+// ExtPay integration — wrap in try/catch so unregistered ID doesn't crash the service worker
+function initExtPay() {
+  try {
+    const extpay = ExtPay('pagepulse'); // Replace 'pagepulse' with actual ExtensionPay ID when registered
+    extpay.startBackground();
+    extpay.onPaid.addListener(async () => {
+      await updateSettings({ tier: TIERS.PRO });
+    });
+  } catch (e) {
+    console.warn('PagePulse: ExtPay not configured — payment features disabled.', e.message);
+  }
+}
 
-extpay.onPaid.addListener(async () => {
-  const { updateSettings } = await import('./lib/storage.js');
-  const { TIERS } = await import('./lib/constants.js');
-  await updateSettings({ tier: TIERS.PRO });
-});
+// Delay ExtPay init to avoid blocking service worker registration
+setTimeout(initExtPay, 1000);
 
 // --- Alarm Setup ---
 chrome.runtime.onInstalled.addListener(() => {

@@ -10,6 +10,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
   const targetId = params.get('monitor');
   if (targetId) selectMonitor(targetId);
+
+  // Auto-refresh sidebar and current monitor every 30 seconds
+  setInterval(async () => {
+    await loadSidebar();
+    if (currentMonitorId) await selectMonitor(currentMonitorId);
+  }, 30000);
 });
 
 async function loadSidebar() {
@@ -130,13 +136,16 @@ function setupEventListeners() {
     const btn = document.getElementById('btn-check-now');
     btn.textContent = 'Checking...';
     btn.disabled = true;
-    await chrome.runtime.sendMessage({ action: 'checkNow', monitorId: currentMonitorId });
-    setTimeout(async () => {
-      await selectMonitor(currentMonitorId);
-      await loadSidebar();
-      btn.textContent = 'Check Now';
-      btn.disabled = false;
-    }, 2000);
+    // checkNow awaits the full runTick() before responding
+    const result = await chrome.runtime.sendMessage({ action: 'checkNow', monitorId: currentMonitorId });
+    // Refresh UI after check completes
+    await selectMonitor(currentMonitorId);
+    await loadSidebar();
+    btn.textContent = 'Check Now';
+    btn.disabled = false;
+    if (result?.reason === 'rate_limited') {
+      alert('Daily check limit reached on Free tier. Upgrade to Pro for unlimited checks.');
+    }
   });
 
   document.getElementById('btn-delete').addEventListener('click', async () => {
