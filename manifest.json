@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "PagePulse — Website Change Monitor",
+  "version": "1.0.0",
+  "description": "Track text changes on webpage elements. Get notified when prices drop, jobs post, or content updates.",
+  "permissions": [
+    "alarms",
+    "storage",
+    "notifications",
+    "activeTab",
+    "scripting",
+    "offscreen"
+  ],
+  "optional_host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
