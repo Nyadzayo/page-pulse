@@ -109,7 +109,6 @@
 
     const el = highlighted;
     const url = window.location.href;
-    const origin = new URL(url).origin;
 
     const data = {
       url,
@@ -120,24 +119,16 @@
       label: `${el.tagName.toLowerCase()} on ${window.location.hostname}`,
     };
 
-    // Request permission HERE (user gesture context)
-    chrome.permissions.request({ origins: [`${origin}/*`] }, (granted) => {
-      if (!granted) {
-        cleanup();
-        showToast('Permission needed to monitor this site. Please try again and allow access.', null, true);
-        return;
+    // Permission was already granted in popup before content script injection
+    chrome.runtime.sendMessage({ action: 'createMonitor', data }, (response) => {
+      cleanup();
+      if (response?.success) {
+        showToast('Monitor added — checking every hour', response.monitor?.id);
+      } else if (response?.reason === 'limit_reached') {
+        showToast('Monitor limit reached. Upgrade to Pro for more.', null, true);
+      } else {
+        showToast('Failed to create monitor. Please try again.', null, true);
       }
-
-      chrome.runtime.sendMessage({ action: 'createMonitor', data }, (response) => {
-        cleanup();
-        if (response?.success) {
-          showToast('Monitor added — checking every hour', response.monitor?.id);
-        } else if (response?.reason === 'limit_reached') {
-          showToast('Monitor limit reached. Upgrade to Pro for more.', null, true);
-        } else {
-          showToast('Failed to create monitor. Please try again.', null, true);
-        }
-      });
     });
   }
 

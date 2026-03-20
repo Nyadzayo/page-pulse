@@ -68,11 +68,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-add').addEventListener('click', async () => {
     const activeCount = monitorArr.filter((m) => m.active).length;
     if (activeCount >= limits.maxMonitors) {
-      // Could show inline message, but for MVP just alert
       return;
     }
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) return;
+    if (!tab?.id || !tab.url) return;
+
+    // Request host permission HERE (popup is an extension page with user gesture)
+    const origin = new URL(tab.url).origin;
+    const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
+    if (!granted) return;
+
     chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id });
     window.close();
   });
