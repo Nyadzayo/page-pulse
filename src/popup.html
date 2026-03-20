@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup">
+    <header class="popup-head">
+      <div class="popup-brand">
+        <div class="popup-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h4"/></svg>
+        </div>
+        <span class="popup-title">PagePulse</span>
+      </div>
+      <span id="tier-badge" class="popup-tier">FREE</span>
+    </header>
+
+    <div id="monitor-list" class="popup-body"></div>
+
+    <div class="popup-actions">
+      <button id="btn-add" class="popup-btn primary">+ Add Monitor</button>
+      <button id="btn-dashboard" class="popup-btn secondary">Dashboard</button>
+    </div>
+
+    <footer class="popup-footer">
+      <span id="usage-text" class="popup-usage"><strong>0</strong>/5 monitors</span>
+      <div class="popup-usage-bar">
+        <div id="usage-fill" class="popup-usage-fill" style="width: 0%"></div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
