@@ -163,6 +163,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     handleCheckNow(msg.monitorId).then(sendResponse);
     return true;
   }
+  if (msg.action === 'toggleTier') {
+    handleToggleTier().then(sendResponse);
+    return true;
+  }
+  if (msg.action === 'testNotification') {
+    handleTestNotification().then(sendResponse);
+    return true;
+  }
 });
 
 async function handleCreateMonitor(data) {
@@ -241,5 +249,25 @@ async function handleCheckNow(monitorId) {
   }
 
   await runTick();
+  return { success: true };
+}
+
+// --- Dev helpers (remove before production release) ---
+
+async function handleToggleTier() {
+  const { updateSettings } = await import('./lib/storage.js');
+  const settings = await getSettings();
+  const newTier = settings.tier === TIERS.PRO ? TIERS.FREE : TIERS.PRO;
+  await updateSettings({ tier: newTier });
+  return { success: true, tier: newTier };
+}
+
+async function handleTestNotification() {
+  await chrome.notifications.create('test-notification', {
+    type: 'basic',
+    title: 'PagePulse Test',
+    message: 'Notifications are working! This is a test alert.',
+    iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
+  });
   return { success: true };
 }

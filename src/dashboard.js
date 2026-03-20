@@ -182,6 +182,19 @@ function setupEventListeners() {
     const extpay = ExtPay('pagepulse');
     extpay.openPaymentPage();
   });
+
+  // --- Dev helpers (remove before production) ---
+  document.getElementById('btn-toggle-tier').addEventListener('click', async () => {
+    const response = await chrome.runtime.sendMessage({ action: 'toggleTier' });
+    if (response?.success) {
+      // Reload the entire dashboard to reflect new tier
+      window.location.reload();
+    }
+  });
+
+  document.getElementById('btn-test-notif').addEventListener('click', async () => {
+    await chrome.runtime.sendMessage({ action: 'testNotification' });
+  });
 }
 
 function timeAgo(ts) {

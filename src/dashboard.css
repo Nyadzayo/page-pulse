@@ -193,6 +193,24 @@ html, body {
   outline-offset: 2px;
 }
 
+/* ─── Dev Buttons (remove before production) ─────────────────────────────────── */
+.dash-dev-btn {
+  height: 30px;
+  padding: 0 10px;
+  background: rgba(245,158,11,0.12);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: #FCD34D;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.dash-dev-btn:hover {
+  background: rgba(245,158,11,0.2);
+}
+
 /* ─── Body Layout ────────────────────────────────────────────────────────────── */
 .dash-body {
   display: flex;
