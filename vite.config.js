@@ -3,8 +3,9 @@ import { resolve } from 'path';
 import { copyFileSync, mkdirSync, existsSync, cpSync } from 'fs';
 
 export default defineConfig({
+  root: 'src',
   build: {
-    outDir: 'dist',
+    outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,
     rollupOptions: {
       input: {
@@ -23,13 +24,13 @@ export default defineConfig({
   },
   plugins: [
     {
-      name: 'copy-manifest-and-icons',
+      name: 'copy-extension-files',
       closeBundle() {
-        copyFileSync(
-          resolve(__dirname, 'manifest.json'),
-          resolve(__dirname, 'dist/manifest.json')
-        );
-        const iconsDir = resolve(__dirname, 'dist/icons');
+        const distDir = resolve(__dirname, 'dist');
+        // Copy manifest
+        copyFileSync(resolve(__dirname, 'manifest.json'), resolve(distDir, 'manifest.json'));
+        // Copy icons
+        const iconsDir = resolve(distDir, 'icons');
         if (!existsSync(iconsDir)) mkdirSync(iconsDir, { recursive: true });
         cpSync(resolve(__dirname, 'icons'), iconsDir, { recursive: true });
       },
@@ -38,6 +39,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./tests/setup.js'],
+    root: resolve(__dirname),
+    setupFiles: [resolve(__dirname, 'tests/setup.js')],
   },
 });
