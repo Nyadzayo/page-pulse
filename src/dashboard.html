@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>PagePulse Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <div class="dash">
+    <header class="dash-header">
+      <div class="dash-brand">
+        <div class="dash-brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" width="16" height="16"><path d="M2 12h4l3-9 4 18 3-9h4"/></svg>
+        </div>
+        <span class="dash-brand-name">PagePulse</span>
+      </div>
+      <div class="dash-header-right">
+        <span id="tier-badge" class="tier-badge">FREE</span>
+        <button id="btn-upgrade" class="dash-upgrade">Upgrade to Pro</button>
+      </div>
+    </header>
+
+    <div class="dash-body">
+      <aside class="dash-sidebar">
+        <div class="dash-sidebar-head">
+          <h3>Monitors</h3>
+          <span id="sidebar-count" class="dash-sidebar-count">0 / 5</span>
+        </div>
+        <div id="sidebar-list" class="dash-sidebar-list"></div>
+      </aside>
+
+      <main id="main-panel" class="dash-main">
+        <div id="no-selection" class="no-selection">
+          <p>Select a monitor from the sidebar to view details and change history.</p>
+        </div>
+
+        <div id="monitor-detail" style="display:none;">
+          <div class="dm-header">
+            <div>
+              <div id="detail-label" class="dm-title"></div>
+              <a id="detail-url" class="dm-url" href="#" target="_blank"></a>
+            </div>
+            <div class="dm-actions">
+              <button id="btn-check-now" class="dm-btn check">Check Now</button>
+              <button id="btn-export" class="dm-btn">Export</button>
+              <button id="btn-delete" class="dm-btn danger">Delete</button>
+            </div>
+          </div>
+
+          <div class="dm-stats">
+            <div class="dm-stat"><div class="dm-stat-label">Status</div><div id="stat-status" class="dm-stat-value"></div></div>
+            <div class="dm-stat"><div class="dm-stat-label">Last Checked</div><div id="stat-last-checked" class="dm-stat-value"></div></div>
+            <div class="dm-stat"><div class="dm-stat-label">Changes</div><div id="stat-changes" class="dm-stat-value"></div></div>
+            <div class="dm-stat"><div class="dm-stat-label">Tracking Since</div><div id="stat-since" class="dm-stat-value"></div></div>
+          </div>
+
+          <div id="interval-bar" class="dm-interval">
+            <span class="dm-interval-label">Check every</span>
+            <div id="interval-options" class="dm-interval-options"></div>
+          </div>
+
+          <div class="dm-section-label">Current Value<span class="line"></span></div>
+          <pre id="detail-baseline" class="dm-baseline"></pre>
+
+          <div class="dm-section-label">Change History<span class="line"></span></div>
+          <div id="history-list" class="dm-history"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="dashboard.js" type="module"></script>
+</body>
+</html>
