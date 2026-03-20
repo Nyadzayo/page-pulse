@@ -33,6 +33,11 @@ export default defineConfig({
         const iconsDir = resolve(distDir, 'icons');
         if (!existsSync(iconsDir)) mkdirSync(iconsDir, { recursive: true });
         cpSync(resolve(__dirname, 'icons'), iconsDir, { recursive: true });
+        // Copy ExtPay content script (required by ExtPay SDK for payment callback)
+        copyFileSync(
+          resolve(__dirname, 'node_modules/extpay/dist/ExtPay.js'),
+          resolve(distDir, 'ExtPay.js')
+        );
       },
     },
   ],
