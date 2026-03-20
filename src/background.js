@@ -262,7 +262,6 @@ async function handleCheckNow(monitorId) {
 // --- Dev helpers (remove before production release) ---
 
 async function handleToggleTier() {
-  const { updateSettings } = await import('./lib/storage.js');
   const settings = await getSettings();
   const newTier = settings.tier === TIERS.PRO ? TIERS.FREE : TIERS.PRO;
   await updateSettings({ tier: newTier });
