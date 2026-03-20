@@ -3,6 +3,16 @@ import { filterDueMonitors, groupByUrl, processCheckResults, limitUrlBatch } fro
 import { hasOriginAccess, extractOrigin } from './lib/permissions.js';
 import { notifyBatch } from './lib/notifications.js';
 import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS } from './lib/constants.js';
+import ExtPay from 'extpay';
+
+const extpay = ExtPay('pagepulse'); // Replace 'pagepulse' with actual ExtensionPay ID when registered
+extpay.startBackground();
+
+extpay.onPaid.addListener(async () => {
+  const { updateSettings } = await import('./lib/storage.js');
+  const { TIERS } = await import('./lib/constants.js');
+  await updateSettings({ tier: TIERS.PRO });
+});
 
 // --- Alarm Setup ---
 chrome.runtime.onInstalled.addListener(() => {

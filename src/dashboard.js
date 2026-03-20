@@ -177,9 +177,10 @@ function setupEventListeners() {
     URL.revokeObjectURL(url);
   });
 
-  document.getElementById('btn-upgrade').addEventListener('click', () => {
-    // ExtensionPay integration placeholder
-    alert('Pro upgrade coming soon!');
+  document.getElementById('btn-upgrade').addEventListener('click', async () => {
+    const { default: ExtPay } = await import('extpay');
+    const extpay = ExtPay('pagepulse');
+    extpay.openPaymentPage();
   });
 }
 
