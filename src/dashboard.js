@@ -187,9 +187,11 @@ function setupEventListeners() {
   });
 
   document.getElementById('btn-upgrade').addEventListener('click', async () => {
-    const { default: ExtPay } = await import('extpay');
-    const extpay = ExtPay('pagepulse');
-    extpay.openPaymentPage();
+    // ExtPay DISABLED in dev. To enable: register at extensionpay.com, uncomment below.
+    // const { default: ExtPay } = await import('extpay');
+    // const extpay = ExtPay('YOUR_EXTPAY_ID');
+    // extpay.openPaymentPage();
+    alert('Payment not configured yet. Use DEV: Toggle Tier to test Pro features.');
   });
 
   // --- Dev helpers (remove before production) ---

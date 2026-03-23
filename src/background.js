@@ -3,20 +3,21 @@ import { filterDueMonitors, groupByUrl, processCheckResults, limitUrlBatch } fro
 import { hasOriginAccess, extractOrigin } from './lib/permissions.js';
 import { notifyBatch } from './lib/notifications.js';
 import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS } from './lib/constants.js';
-import ExtPay from 'extpay';
-
-// ExtPay integration — wrap in try/catch so unregistered ID doesn't crash the service worker
-function initExtPay() {
-  try {
-    const extpay = ExtPay('pagepulse'); // Replace 'pagepulse' with actual ExtensionPay ID when registered
-    extpay.startBackground();
-    extpay.onPaid.addListener(async () => {
-      await updateSettings({ tier: TIERS.PRO });
-    });
-  } catch (e) {
-    console.warn('PagePulse: ExtPay not configured — payment features disabled.', e.message);
-  }
-}
+// ExtPay integration — DISABLED during development.
+// To enable: register at extensionpay.com, replace 'YOUR_EXTPAY_ID', uncomment below.
+// import ExtPay from 'extpay';
+// function initExtPay() {
+//   try {
+//     const extpay = ExtPay('YOUR_EXTPAY_ID');
+//     extpay.startBackground();
+//     extpay.onPaid.addListener(async () => {
+//       await updateSettings({ tier: TIERS.PRO });
+//     });
+//   } catch (e) {
+//     console.warn('PagePulse: ExtPay not configured.', e.message);
+//   }
+// }
+function initExtPay() { /* disabled in dev */ }
 
 // Delay ExtPay init to avoid blocking service worker registration
 setTimeout(initExtPay, 1000);
