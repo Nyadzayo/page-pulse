@@ -202,7 +202,20 @@ function setupEventListeners() {
   });
 
   document.getElementById('btn-test-notif').addEventListener('click', async () => {
-    await chrome.runtime.sendMessage({ action: 'testNotification' });
+    // Fire notification directly from dashboard (extension page has full API access)
+    try {
+      await chrome.notifications.create(`test-${Date.now()}`, {
+        type: 'basic',
+        title: 'PagePulse Test',
+        message: 'Notifications are working! This is a test alert.',
+        iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
+        priority: 2,
+      });
+      chrome.action.setBadgeText({ text: '!' });
+      chrome.action.setBadgeBackgroundColor({ color: '#10B981' });
+    } catch (e) {
+      alert('Notification failed: ' + e.message + '\n\nCheck macOS Settings > Notifications > Google Chrome is enabled.');
+    }
   });
 }
 
