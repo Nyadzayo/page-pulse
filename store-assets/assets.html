@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PagePulse — CWS Assets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-root: #06080F;
+  --bg-canvas: #0A0E1A;
+  --bg-surface: #111827;
+  --bg-raised: #1A1F2E;
+  --bg-elevated: #232838;
+  --accent: #10B981;
+  --accent-dim: rgba(16,185,129,0.12);
+  --accent-glow: rgba(16,185,129,0.25);
+  --accent-text: #34D399;
+  --red: #EF4444;
+  --amber: #F59E0B;
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --text-tertiary: #6B7280;
+  --font-ui: 'Manrope', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; font-family:var(--font-ui); color:var(--text-primary); padding:40px; }
+h1 { font-size:14px; color:var(--accent); letter-spacing:0.1em; text-transform:uppercase; text-align:center; margin-bottom:8px; }
+.sub { text-align:center; color:var(--text-tertiary); font-size:13px; margin-bottom:48px; }
+.asset-section { margin-bottom:64px; }
+.asset-label { font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.asset-label .dim { font-family:var(--font-mono); font-size:11px; color:var(--text-tertiary); }
+.asset-label .note { font-size:11px; color:var(--accent-text); margin-left:auto; }
+
+/* ═══════════════════════════════════════════════
+   STORE ICON 128x128
+   ═══════════════════════════════════════════════ */
+.icon-128 {
+  width:128px; height:128px;
+  background: linear-gradient(145deg, #14D194 0%, #0D9668 50%, #0A7B55 100%);
+  border-radius:28px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 20px rgba(16,185,129,0.3);
+  position:relative;
+  overflow:hidden;
+}
+.icon-128::before {
+  content:""; position:absolute; inset:0;
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.15) 0%, transparent 60%);
+}
+.icon-128 svg { position:relative; z-index:1; }
+
+/* ═══════════════════════════════════════════════
+   SCREENSHOTS 1280x800
+   ═══════════════════════════════════════════════ */
+.screenshot {
+  width:1280px; height:800px;
+  border-radius:8px;
+  overflow:hidden;
+  position:relative;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  margin-bottom:20px;
+}
+
+/* ── Screenshot 1: Popup ── */
+.ss-popup { background: #F3F4F6; }
+.ss-popup .browser-bar {
+  height:40px; background:#E5E7EB; display:flex; align-items:center; padding:0 14px; gap:8px;
+}
+.ss-popup .dot { width:10px; height:10px; border-radius:50%; }
+.ss-popup .dot.r { background:#EF4444; } .ss-popup .dot.y { background:#F59E0B; } .ss-popup .dot.g { background:#22C55E; }
+.ss-popup .url-bar { flex:1; max-width:500px; height:24px; background:#fff; border-radius:6px; margin-left:8px; padding:0 12px; font-family:var(--font-mono); font-size:11px; color:#6B7280; line-height:24px; }
+
+.ss-popup .page-content { padding:40px 80px; }
+.ss-popup .fake-card { background:#fff; border-radius:12px; padding:24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.ss-popup .fake-heading { height:14px; width:280px; background:#D1D5DB; border-radius:3px; margin-bottom:12px; }
+.ss-popup .fake-text { height:10px; background:#E5E7EB; border-radius:2px; margin-bottom:8px; }
+.ss-popup .fake-text.w60 { width:60%; } .ss-popup .fake-text.w80 { width:80%; } .ss-popup .fake-text.w40 { width:40%; }
+
+/* Popup overlay */
+.ss-popup .popup-overlay {
+  position:absolute; top:46px; right:20px;
+  width:360px; background:var(--bg-surface);
+  border-radius:16px; overflow:hidden;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 12px 48px rgba(0,0,0,0.5);
+}
+.popup-head { display:flex; align-items:center; justify-content:space-between; padding:16px 18px 12px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.popup-brand { display:flex; align-items:center; gap:8px; }
+.popup-icon-sm { width:24px; height:24px; background:linear-gradient(145deg,#14D194,#0D9668); border-radius:6px; display:flex; align-items:center; justify-content:center; }
+.popup-title-text { font-size:14px; font-weight:700; letter-spacing:-0.02em; }
+.tier-badge { font-family:var(--font-mono); font-size:10px; font-weight:600; letter-spacing:0.08em; color:var(--accent-text); background:var(--accent-dim); padding:3px 8px; border-radius:4px; }
+
+.popup-items { padding:8px 10px; }
+.pm { display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:4px; }
+.pm:hover { background:rgba(255,255,255,0.03); }
+.pm-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; position:relative; }
+.pm-dot.live { background:var(--accent); box-shadow:0 0 8px var(--accent-glow); }
+.pm-dot.live::after { content:""; position:absolute; inset:-3px; border-radius:50%; border:1px solid var(--accent); opacity:0.3; animation:pulse 2s ease-out infinite; }
+@keyframes pulse { 0%{transform:scale(1);opacity:0.3;} 100%{transform:scale(1.8);opacity:0;} }
+.pm-dot.err { background:var(--red); box-shadow:0 0 6px rgba(239,68,68,0.3); }
+.pm-info { flex:1; min-width:0; }
+.pm-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:-0.01em; }
+.pm-meta { font-family:var(--font-mono); font-size:11px; color:var(--text-tertiary); margin-top:1px; }
+.pm-count { font-family:var(--font-mono); font-size:11px; font-weight:600; color:var(--accent-text); background:var(--accent-dim); padding:2px 7px; border-radius:4px; flex-shrink:0; }
+.pm-count.z { color:var(--text-tertiary); background:var(--bg-elevated); }
+.pm-toggle { width:32px; height:18px; border-radius:9px; border:none; flex-shrink:0; position:relative; }
+.pm-toggle.on { background:var(--accent); } .pm-toggle.off { background:var(--bg-elevated); }
+.pm-toggle::after { content:""; position:absolute; top:2px; width:14px; height:14px; border-radius:50%; background:#fff; }
+.pm-toggle.on::after { left:16px; } .pm-toggle.off::after { left:2px; }
+
+.popup-btns { display:flex; gap:6px; padding:6px 10px 10px; }
+.popup-btn { flex:1; padding:10px; border-radius:8px; border:none; font-family:var(--font-ui); font-size:13px; font-weight:600; text-align:center; letter-spacing:-0.01em; cursor:default; }
+.popup-btn.pri { background:var(--accent); color:#000; }
+.popup-btn.sec { background:var(--bg-raised); color:var(--text-secondary); border:1px solid rgba(255,255,255,0.08); }
+
+.popup-foot { padding:8px 18px 12px; border-top:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:space-between; }
+.popup-usage { font-family:var(--font-mono); font-size:11px; color:var(--text-tertiary); }
+.popup-usage strong { color:var(--text-secondary); }
+.popup-bar { width:60px; height:3px; background:var(--bg-elevated); border-radius:2px; overflow:hidden; }
+.popup-bar-fill { height:100%; width:60%; background:var(--accent); border-radius:2px; }
+
+/* ── Screenshot 2: Selector ── */
+.ss-selector { background:#F3F4F6; }
+.ss-selector .page-dim { position:absolute; inset:40px 0 0 0; background:rgba(0,0,0,0.03); }
+.ss-selector .sel-banner {
+  position:absolute; top:56px; left:50%; transform:translateX(-50%); z-index:10;
+  background:#0F172A; color:#F1F5F9; padding:9px 18px; border-radius:8px;
+  font:500 13px/1.4 var(--font-ui); box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  display:flex; align-items:center; gap:8px; white-space:nowrap;
+}
+.sel-banner kbd { font-family:var(--font-mono); font-size:10px; background:rgba(255,255,255,0.12); padding:2px 5px; border-radius:3px; color:#94A3B8; }
+.ss-selector .product-card {
+  position:absolute; top:180px; left:120px;
+  width:520px; background:#fff; border-radius:12px; padding:24px;
+  display:flex; gap:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); z-index:2;
+}
+.product-img { width:120px; height:120px; background:linear-gradient(135deg,#E0E7FF,#C7D2FE); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:40px; }
+.product-info { flex:1; }
+.product-name { font-size:18px; font-weight:700; color:#111827; margin-bottom:4px; letter-spacing:-0.02em; }
+.product-desc { font-size:13px; color:#6B7280; margin-bottom:12px; line-height:1.5; }
+.product-price {
+  display:inline-block; font-size:24px; font-weight:800; color:#059669;
+  outline:2.5px solid #2563EB; outline-offset:4px;
+  background:rgba(37,99,235,0.06); padding:4px 10px; border-radius:6px;
+  letter-spacing:-0.02em;
+}
+.product-stock { font-size:12px; color:#9CA3AF; margin-top:8px; }
+
+.ss-selector .side-cards { position:absolute; top:180px; right:60px; width:480px; z-index:1; }
+.side-card { background:#fff; border-radius:12px; padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+
+/* ── Screenshot 3: Dashboard ── */
+.ss-dashboard { background:var(--bg-canvas); display:flex; flex-direction:column; }
+.dash-head { height:52px; background:var(--bg-surface); border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; padding:0 20px; justify-content:space-between; }
+.dash-brand { display:flex; align-items:center; gap:10px; }
+.dash-icon { width:28px; height:28px; background:linear-gradient(145deg,#14D194,#0D9668); border-radius:7px; display:flex; align-items:center; justify-content:center; }
+.dash-title { font-size:15px; font-weight:800; letter-spacing:-0.03em; }
+.dash-hr { display:flex; align-items:center; gap:10px; }
+.dash-upgrade-btn { font-size:12px; font-weight:600; padding:7px 14px; border-radius:6px; border:1px solid rgba(16,185,129,0.4); background:transparent; color:var(--accent-text); }
+
+.dash-content { display:flex; flex:1; }
+.dash-side { width:260px; background:var(--bg-surface); border-right:1px solid rgba(255,255,255,0.06); padding:16px 8px; }
+.dash-side-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-tertiary); margin-bottom:12px; padding:0 8px; display:flex; justify-content:space-between; }
+.dash-side-count { font-family:var(--font-mono); font-size:10px; color:var(--text-tertiary); background:var(--bg-elevated); padding:2px 6px; border-radius:3px; }
+
+.ds { display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:2px; cursor:default; }
+.ds.act { background:rgba(28,43,58,1); border-left:3px solid var(--accent); }
+.ds-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.ds-dot.ok { background:var(--accent); } .ds-dot.err { background:var(--red); }
+.ds-info { flex:1; min-width:0; }
+.ds-name { font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ds-host { font-family:var(--font-mono); font-size:10px; color:var(--text-tertiary); margin-top:1px; }
+.ds-badge { font-family:var(--font-mono); font-size:10px; font-weight:600; padding:1px 5px; border-radius:3px; }
+.ds-badge.ch { color:var(--accent-text); background:var(--accent-dim); }
+.ds-badge.z { color:var(--text-tertiary); }
+
+.dash-main { flex:1; padding:24px 28px; overflow:hidden; }
+.dm-head { display:flex; justify-content:space-between; margin-bottom:20px; }
+.dm-title { font-size:18px; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px; }
+.dm-url { font-family:var(--font-mono); font-size:11px; color:var(--accent-text); opacity:0.8; text-decoration:none; }
+.dm-btns { display:flex; gap:6px; }
+.dm-btn { font-family:var(--font-ui); font-size:12px; font-weight:600; padding:7px 14px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); background:var(--bg-raised); color:var(--text-secondary); cursor:default; }
+.dm-btn.check { background:var(--accent-dim); color:var(--accent-text); border-color:rgba(16,185,129,0.2); }
+.dm-btn.danger { color:#FCA5A5; border-color:rgba(239,68,68,0.2); }
+
+.dm-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-radius:10px; overflow:hidden; margin-bottom:20px; }
+.dm-stat { background:var(--bg-surface); padding:14px 16px; }
+.dm-stat-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-tertiary); margin-bottom:6px; }
+.dm-stat-value { font-family:var(--font-mono); font-size:14px; font-weight:600; }
+.dm-stat-value.ok { color:var(--accent-text); }
+
+.dm-intervals { display:flex; align-items:center; gap:12px; padding:10px 16px; background:var(--bg-surface); border:1px solid rgba(255,255,255,0.08); border-radius:8px; margin-bottom:20px; }
+.dm-int-label { font-size:12px; font-weight:600; color:var(--text-secondary); white-space:nowrap; }
+.dm-int-opts { display:flex; gap:4px; }
+.dm-int-opt { font-family:var(--font-mono); font-size:11px; padding:5px 10px; border-radius:4px; border:none; background:transparent; color:var(--text-tertiary); cursor:default; position:relative; }
+.dm-int-opt.active { background:var(--accent-dim); color:var(--accent-text); }
+.dm-int-opt.pro { opacity:0.45; }
+.dm-int-opt.pro::after { content:"PRO"; font-size:7px; font-weight:700; color:#FCD34D; position:absolute; top:-2px; right:-4px; }
+
+.dm-section { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-tertiary); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.dm-section .line { flex:1; height:1px; background:rgba(255,255,255,0.06); }
+
+.dm-baseline { font-family:var(--font-mono); font-size:13px; padding:12px 16px; background:var(--bg-surface); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--text-secondary); margin-bottom:20px; }
+
+.dm-entry { background:var(--bg-surface); border:1px solid rgba(255,255,255,0.08); border-radius:8px; margin-bottom:8px; overflow:hidden; }
+.dm-entry-head { display:flex; justify-content:space-between; padding:10px 16px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.dm-entry-time { font-family:var(--font-mono); font-size:11px; color:var(--text-tertiary); }
+.dm-entry-tag { font-family:var(--font-mono); font-size:10px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; padding:2px 6px; border-radius:3px; background:var(--accent-dim); color:var(--accent-text); }
+.dm-diff { padding:12px 16px; font-family:var(--font-mono); font-size:13px; line-height:1.7; color:var(--text-secondary); }
+.dm-diff ins { background:rgba(16,185,129,0.15); color:#6EE7B7; text-decoration:none; padding:1px 4px; border-radius:3px; }
+.dm-diff del { background:rgba(239,68,68,0.12); color:#FCA5A5; text-decoration:line-through; padding:1px 4px; border-radius:3px; }
+
+/* ── Screenshot 4: Notification ── */
+.ss-notif { background:var(--bg-root); position:relative; }
+.ss-notif .bg-dash { position:absolute; inset:0; opacity:0.4; }
+.ss-notif .bg-dash .dash-head { opacity:0.6; }
+.ss-notif .bg-dash .dash-content { opacity:0.3; }
+
+.notif-card {
+  position:absolute; right:32px;
+  width:380px; background:#1C1C1E; border-radius:14px; padding:14px 16px;
+  display:flex; gap:12px; align-items:flex-start;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.08);
+  z-index:10;
+}
+.notif-card.n1 { top:30px; }
+.notif-card.n2 { top:140px; opacity:0.9; }
+.notif-icon { width:40px; height:40px; background:linear-gradient(145deg,#14D194,#0D9668); border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.notif-body { flex:1; }
+.notif-app { font-size:11px; font-weight:600; color:#8E8E93; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:3px; }
+.notif-title { font-size:13px; font-weight:700; color:#F2F2F7; margin-bottom:2px; letter-spacing:-0.01em; }
+.notif-msg { font-size:12px; color:#AEAEB2; line-height:1.4; }
+.notif-time { font-size:11px; color:#636366; flex-shrink:0; margin-top:2px; }
+
+/* ── Promo Tiles ── */
+.promo {
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:center; gap:40px;
+}
+.promo-bg {
+  position:absolute; inset:0;
+  background: radial-gradient(ellipse at 35% 50%, rgba(16,185,129,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 30%, rgba(16,185,129,0.05) 0%, transparent 50%),
+              var(--bg-root);
+}
+.promo-icon {
+  position:relative; z-index:1;
+  background:linear-gradient(145deg,#14D194 0%,#0D9668 50%,#0A7B55 100%);
+  border-radius:22%;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 8px 32px rgba(16,185,129,0.3), 0 0 80px rgba(16,185,129,0.1);
+}
+.promo-text { position:relative; z-index:1; }
+.promo-name { font-size:32px; font-weight:800; letter-spacing:-0.04em; margin-bottom:6px; }
+.promo-tag { font-size:15px; color:var(--text-secondary); line-height:1.5; }
+.promo-tag2 { font-size:13px; color:var(--text-tertiary); margin-top:4px; }
+
+.promo.small .promo-icon { width:80px; height:80px; border-radius:18px; }
+.promo.small .promo-icon svg { width:44px; height:44px; }
+.promo.small .promo-name { font-size:24px; }
+.promo.small .promo-tag { font-size:13px; }
+.promo.small .promo-tag2 { font-size:11px; }
+
+.promo.large .promo-icon { width:140px; height:140px; border-radius:32px; }
+.promo.large .promo-icon svg { width:76px; height:76px; }
+
+.promo.marquee { gap:60px; }
+.promo.marquee .promo-icon { width:120px; height:120px; border-radius:28px; }
+.promo.marquee .promo-icon svg { width:66px; height:66px; }
+.promo.marquee .promo-name { font-size:36px; }
+.promo.marquee .promo-tag { font-size:16px; }
+
+/* Pulse SVG used everywhere */
+.pulse-svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2)); }
+</style>
+</head>
+<body>
+
+<h1>PagePulse — Chrome Web Store Assets</h1>
+<p class="sub">Right-click each asset and "Save image as..." or use browser screenshot tools. All at exact required dimensions.</p>
+
+<!-- ═══ STORE ICON ═══ -->
+<div class="asset-section">
+  <div class="asset-label">Store Icon <span class="dim">128 x 128</span></div>
+  <div class="icon-128">
+    <svg class="pulse-svg" width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 12h4l3-9 4 18 3-9h6"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══ SCREENSHOT 1: POPUP ═══ -->
+<div class="asset-section">
+  <div class="asset-label">Screenshot 1 — Popup <span class="dim">1280 x 800</span> <span class="note">Tip: Use Cmd+Shift+4 (Mac) to capture this exact area</span></div>
+  <div class="screenshot ss-popup">
+    <div class="browser-bar">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <div class="url-bar">books.toscrape.com/catalogue</div>
+    </div>
+    <div class="page-content">
+      <div class="fake-card">
+        <div class="fake-heading"></div>
+        <div class="fake-text w80"></div>
+        <div class="fake-text w60"></div>
+        <div class="fake-text w40"></div>
+      </div>
+      <div class="fake-card">
+        <div class="fake-heading" style="width:200px"></div>
+        <div class="fake-text w60"></div>
+        <div class="fake-text w80"></div>
+        <div class="fake-text w40"></div>
+        <div class="fake-text w60"></div>
+      </div>
+      <div class="fake-card">
+        <div class="fake-text w80"></div>
+        <div class="fake-text w40"></div>
+      </div>
+    </div>
+
+    <div class="popup-overlay">
+      <div class="popup-head">
+        <div class="popup-brand">
+          <div class="popup-icon-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h4"/></svg>
+          </div>
+          <span class="popup-title-text">PagePulse</span>
+        </div>
+        <span class="tier-badge">FREE</span>
+      </div>
+      <div class="popup-items">
+        <div class="pm">
+          <div class="pm-dot live"></div>
+          <div class="pm-info"><div class="pm-name">Amazon Widget Price</div><div class="pm-meta">12m ago &middot; amazon.com</div></div>
+          <div class="pm-count">3</div>
+          <button class="pm-toggle on"></button>
+        </div>
+        <div class="pm">
+          <div class="pm-dot live"></div>
+          <div class="pm-info"><div class="pm-name">Indeed Senior Dev Roles</div><div class="pm-meta">1h ago &middot; indeed.com</div></div>
+          <div class="pm-count">7</div>
+          <button class="pm-toggle on"></button>
+        </div>
+        <div class="pm">
+          <div class="pm-dot err"></div>
+          <div class="pm-info"><div class="pm-name">Gov.uk Visa Policy</div><div class="pm-meta" style="color:#FCA5A5">Broken &middot; selector not found</div></div>
+          <div class="pm-count z">0</div>
+          <button class="pm-toggle off"></button>
+        </div>
+        <div class="pm">
+          <div class="pm-dot live"></div>
+          <div class="pm-info"><div class="pm-name">MDN Web API Docs</div><div class="pm-meta">6h ago &middot; developer.mozilla.org</div></div>
+          <div class="pm-count">1</div>
+          <button class="pm-toggle on"></button>
+        </div>
+      </div>
+      <div class="popup-btns">
+        <div class="popup-btn pri">+ Add Monitor</div>
+        <div class="popup-btn sec">Dashboard</div>
+      </div>
+      <div class="popup-foot">
+        <span class="popup-usage"><strong>4</strong>/5 monitors</span>
+        <div class="popup-bar"><div class="popup-bar-fill"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SCREENSHOT 2: SELECTOR ═══ -->
+<div class="asset-section">
+  <div class="asset-label">Screenshot 2 — Element Selector <span class="dim">1280 x 800</span></div>
+  <div class="screenshot ss-selector">
+    <div class="browser-bar">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <div class="url-bar">amazon.com/dp/B09XYZ/wireless-widget</div>
+    </div>
+    <div class="page-dim"></div>
+    <div class="sel-banner">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+      Click an element to monitor
+      <kbd>ESC</kbd>
+    </div>
+    <div class="product-card">
+      <div class="product-img">&#128268;</div>
+      <div class="product-info">
+        <div class="product-name">Wireless Smart Widget Pro</div>
+        <div class="product-desc">Premium wireless widget with auto-sync, Bluetooth 5.3 connectivity, and 24-hour battery life.</div>
+        <div class="product-price">$29.99</div>
+        <div class="product-stock">In Stock &middot; Free delivery tomorrow</div>
+      </div>
+    </div>
+    <div class="side-cards">
+      <div class="side-card"><div class="fake-heading" style="background:#D1D5DB"></div><div class="fake-text w80" style="background:#E5E7EB"></div><div class="fake-text w60" style="background:#E5E7EB"></div></div>
+      <div class="side-card"><div class="fake-text w60" style="background:#E5E7EB"></div><div class="fake-text w80" style="background:#E5E7EB"></div><div class="fake-text w40" style="background:#E5E7EB"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SCREENSHOT 3: DASHBOARD ═══ -->
+<div class="asset-section">
+  <div class="asset-label">Screenshot 3 — Dashboard <span class="dim">1280 x 800</span></div>
+  <div class="screenshot ss-dashboard">
+    <div class="dash-head">
+      <div class="dash-brand">
+        <div class="dash-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h4"/></svg></div>
+        <span class="dash-title">PagePulse</span>
+      </div>
+      <div class="dash-hr">
+        <span class="tier-badge">PRO</span>
+        <button class="dash-upgrade-btn">Upgrade to Pro</button>
+      </div>
+    </div>
+    <div class="dash-content">
+      <div class="dash-side">
+        <div class="dash-side-title">Monitors <span class="dash-side-count">4 / 50</span></div>
+        <div class="ds act"><div class="ds-dot ok"></div><div class="ds-info"><div class="ds-name">Amazon Widget Price</div><div class="ds-host">amazon.com</div></div><span class="ds-badge ch">3</span></div>
+        <div class="ds"><div class="ds-dot ok"></div><div class="ds-info"><div class="ds-name">Indeed Senior Dev Roles</div><div class="ds-host">indeed.com</div></div><span class="ds-badge ch">7</span></div>
+        <div class="ds"><div class="ds-dot err"></div><div class="ds-info"><div class="ds-name">Gov.uk Visa Policy</div><div class="ds-host">gov.uk</div></div><span class="ds-badge z">&mdash;</span></div>
+        <div class="ds"><div class="ds-dot ok"></div><div class="ds-info"><div class="ds-name">MDN Web API Docs</div><div class="ds-host">developer.mozilla.org</div></div><span class="ds-badge ch">1</span></div>
+      </div>
+      <div class="dash-main">
+        <div class="dm-head">
+          <div><div class="dm-title">Amazon Widget Price</div><a class="dm-url">amazon.com/dp/B09XYZ/wireless-widget</a></div>
+          <div class="dm-btns"><div class="dm-btn check">Check Now</div><div class="dm-btn">Export</div><div class="dm-btn danger">Delete</div></div>
+        </div>
+        <div class="dm-stats">
+          <div class="dm-stat"><div class="dm-stat-label">Status</div><div class="dm-stat-value ok">Active</div></div>
+          <div class="dm-stat"><div class="dm-stat-label">Last Checked</div><div class="dm-stat-value">12 min ago</div></div>
+          <div class="dm-stat"><div class="dm-stat-label">Changes</div><div class="dm-stat-value">3</div></div>
+          <div class="dm-stat"><div class="dm-stat-label">Tracking Since</div><div class="dm-stat-value">Mar 14</div></div>
+        </div>
+        <div class="dm-intervals">
+          <span class="dm-int-label">Check every</span>
+          <div class="dm-int-opts">
+            <div class="dm-int-opt pro">5m</div>
+            <div class="dm-int-opt pro">15m</div>
+            <div class="dm-int-opt active">1h</div>
+            <div class="dm-int-opt">6h</div>
+            <div class="dm-int-opt">24h</div>
+          </div>
+        </div>
+        <div class="dm-section">Current Value <span class="line"></span></div>
+        <div class="dm-baseline">$29.99</div>
+        <div class="dm-section">Change History <span class="line"></span></div>
+        <div class="dm-entry">
+          <div class="dm-entry-head"><span class="dm-entry-time">Mar 20, 2026 &middot; 2:15 PM</span><span class="dm-entry-tag">Changed</span></div>
+          <div class="dm-diff">Price: <del>$34.99</del> <ins>$29.99</ins></div>
+        </div>
+        <div class="dm-entry">
+          <div class="dm-entry-head"><span class="dm-entry-time">Mar 18, 2026 &middot; 9:42 AM</span><span class="dm-entry-tag">Changed</span></div>
+          <div class="dm-diff">Price: <del>$39.99</del> <ins>$34.99</ins> &mdash; <del>Limited Stock</del> <ins>In Stock</ins></div>
+        </div>
+        <div class="dm-entry">
+          <div class="dm-entry-head"><span class="dm-entry-time">Mar 15, 2026 &middot; 11:08 PM</span><span class="dm-entry-tag">Changed</span></div>
+          <div class="dm-diff">Price: <del>$44.99</del> <ins>$39.99</ins></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SCREENSHOT 4: NOTIFICATION ═══ -->
+<div class="asset-section">
+  <div class="asset-label">Screenshot 4 — Notifications <span class="dim">1280 x 800</span></div>
+  <div class="screenshot ss-notif">
+    <div class="bg-dash">
+      <div class="dash-head">
+        <div class="dash-brand"><div class="dash-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h4"/></svg></div><span class="dash-title">PagePulse</span></div>
+      </div>
+      <div class="dash-content" style="opacity:0.3">
+        <div class="dash-side" style="height:748px"><div class="dash-side-title" style="margin-top:16px">Monitors</div></div>
+        <div class="dash-main"></div>
+      </div>
+    </div>
+    <div class="notif-card n1">
+      <div class="notif-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h4"/></svg></div>
+      <div class="notif-body">
+        <div class="notif-app">PagePulse</div>
+        <div class="notif-title">Amazon Widget Price</div>
+        <div class="notif-msg">Price changed: $34.99 &rarr; $29.99</div>
+      </div>
+      <div class="notif-time">now</div>
+    </div>
+    <div class="notif-card n2">
+      <div class="notif-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h4"/></svg></div>
+      <div class="notif-body">
+        <div class="notif-app">PagePulse</div>
+        <div class="notif-title">Indeed Senior Dev Roles</div>
+        <div class="notif-msg">New listing: "Senior Backend Engineer — Remote"</div>
+      </div>
+      <div class="notif-time">3m</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SMALL TILE ═══ -->
+<div class="asset-section">
+  <div class="asset-label">Small Promotional Tile <span class="dim">440 x 280</span></div>
+  <div class="screenshot promo small" style="width:440px;height:280px;">
+    <div class="promo-bg"></div>
+    <div class="promo-icon"><svg class="pulse-svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg></div>
+    <div class="promo-text">
+      <div class="promo-name">PagePulse</div>
+      <div class="promo-tag">Website Change Monitor</div>
+      <div class="promo-tag2">Track prices, jobs, and content updates</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LARGE TILE ═══ -->
+<div class="asset-section">
+  <div class="asset-label">Large Promotional Tile <span class="dim">920 x 680</span></div>
+  <div class="screenshot promo large" style="width:920px;height:680px;">
+    <div class="promo-bg"></div>
+    <div class="promo-icon"><svg class="pulse-svg" width="76" height="76" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg></div>
+    <div class="promo-text">
+      <div class="promo-name">PagePulse</div>
+      <div class="promo-tag">Website Change Monitor</div>
+      <div class="promo-tag2">Track prices, jobs, and content updates</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MARQUEE ═══ -->
+<div class="asset-section">
+  <div class="asset-label">Marquee Promotional Tile <span class="dim">1400 x 560</span></div>
+  <div class="screenshot promo marquee" style="width:1400px;height:560px;">
+    <div class="promo-bg"></div>
+    <div class="promo-icon"><svg class="pulse-svg" width="66" height="66" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg></div>
+    <div class="promo-text">
+      <div class="promo-name">PagePulse</div>
+      <div class="promo-tag">Website Change Monitor</div>
+      <div class="promo-tag2">Track prices, jobs, and content updates automatically</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
