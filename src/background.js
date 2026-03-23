@@ -153,12 +153,18 @@ async function runTick() {
 // --- Notification Click Handler ---
 chrome.notifications.onClicked.addListener((notificationId) => {
   const dashboardUrl = chrome.runtime.getURL('dashboard.html');
-  if (notificationId === 'batch-summary') {
+  if (notificationId.includes('batch')) {
     chrome.tabs.create({ url: dashboardUrl });
   } else {
-    chrome.tabs.create({ url: `${dashboardUrl}?monitor=${notificationId}` });
+    // Extract monitor ID from "pagepulse-{monitorId}-{timestamp}"
+    const parts = notificationId.split('-');
+    // Remove "pagepulse" prefix and timestamp suffix
+    const monitorId = parts.slice(1, -1).join('-');
+    chrome.tabs.create({ url: `${dashboardUrl}?monitor=${monitorId}` });
   }
   chrome.notifications.clear(notificationId);
+  // Clear badge when user clicks
+  chrome.action.setBadgeText({ text: '' });
 });
 
 // --- Message Handler ---

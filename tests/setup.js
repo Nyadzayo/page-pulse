@@ -72,6 +72,10 @@ global.chrome = {
     create: vi.fn(),
     query: vi.fn(async () => [{ id: 1 }]),
   },
+  action: {
+    setBadgeText: vi.fn(),
+    setBadgeBackgroundColor: vi.fn(),
+  },
 };
 
 beforeEach(() => {

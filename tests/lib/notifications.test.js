@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { notifyChange, notifyBatch, truncateMessage } from '../../src/lib/notifications.js';
+import { notifyChange, notifyBatch, truncateMessage, updateBadge } from '../../src/lib/notifications.js';
 import { MAX_NOTIFICATIONS_PER_TICK } from '../../src/lib/constants.js';
 
 describe('notifications', () => {
@@ -16,11 +16,11 @@ describe('notifications', () => {
   });
 
   describe('notifyChange', () => {
-    it('creates a Chrome notification with monitor label and truncated new value', async () => {
+    it('creates a Chrome notification with monitor label and message', async () => {
       await notifyChange({ id: 'm1', label: 'Price Watch' }, '$24.99');
       expect(chrome.notifications.create).toHaveBeenCalledWith(
-        'm1',
-        expect.objectContaining({ type: 'basic', title: 'Price Watch', message: '$24.99' })
+        expect.stringContaining('pagepulse-m1-'),
+        expect.objectContaining({ type: 'basic', title: 'Price Watch', message: '$24.99', priority: 2 })
       );
     });
   });
@@ -39,6 +39,23 @@ describe('notifications', () => {
       }));
       await notifyBatch(changes);
       expect(chrome.notifications.create).toHaveBeenCalledTimes(6); // 5 individual + 1 batch
+    });
+    it('updates badge with change count', async () => {
+      const changes = [{ monitor: { id: 'm1', label: 'Test' }, newValue: 'v' }];
+      await notifyBatch(changes);
+      expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: '1' });
+      expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ color: '#10B981' });
+    });
+  });
+
+  describe('updateBadge', () => {
+    it('sets badge text for positive count', () => {
+      updateBadge(5);
+      expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: '5' });
+    });
+    it('clears badge for zero', () => {
+      updateBadge(0);
+      expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: '' });
     });
   });
 });

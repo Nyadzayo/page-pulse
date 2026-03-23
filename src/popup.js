@@ -2,6 +2,9 @@ import { getMonitors, getSettings, updateMonitor } from './lib/storage.js';
 import { TIER_LIMITS, TIERS } from './lib/constants.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Clear badge when popup opens
+  chrome.action.setBadgeText({ text: '' });
+
   const monitors = await getMonitors();
   const settings = await getSettings();
   const tier = settings.tier;
