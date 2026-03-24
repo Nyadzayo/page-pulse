@@ -20,12 +20,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   const limits = TIER_LIMITS[settings.tier];
   const monitorArr = Object.values(monitors);
 
-  // ── SMART FLOW: Zero monitors → go straight to selection ──
+  // ── SMART FLOW: Zero monitors + already have permission → skip popup ──
   if (monitorArr.length === 0) {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.id && isMonitorablePage(tab.url)) {
-      await startAddMonitor(limits);
-      // If we're still here, permission was denied — fall through to show popup
+      const origin = new URL(tab.url).origin;
+      const hasPermission = await chrome.permissions.contains({ origins: [`${origin}/*`] });
+      if (hasPermission) {
+        // Already permitted → go straight to selection, no user gesture needed
+        chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id }, () => void chrome.runtime.lastError);
+        window.close();
+        return;
+      }
+      // No permission → show popup, user clicks "Add Monitor" (user gesture required)
     }
   }
 
