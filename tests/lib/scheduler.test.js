@@ -146,5 +146,18 @@ describe('scheduler', () => {
       const updates = processCheckResults(monitor, result, now);
       expect(updates.changed).toBe(true);
     });
+
+    it('ignores changes that only match ignore patterns', () => {
+      const monitor = {
+        id: 'm1', baseline: 'Post Title 5 minutes ago 100 points',
+        status: STATUS.OK, consecutiveErrors: 0, firstErrorAt: null, changeCount: 0,
+        ignorePatterns: '\\d+\\s*minutes?\\s*ago\n\\d+\\s*points?',
+      };
+      const result = { monitorId: 'm1', text: 'Post Title 8 minutes ago 105 points', matchedBy: 'selector' };
+      const updates = processCheckResults(monitor, result, Date.now());
+      expect(updates.changed).toBe(false);
+      // But baseline should update to latest text
+      expect(updates.baseline).toBe('Post Title 8 minutes ago 105 points');
+    });
   });
 });

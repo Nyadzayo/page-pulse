@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeDiff, hasMeaningfulChange, generateSummary, matchesKeyword } from '../../src/lib/differ.js';
+import { computeDiff, hasMeaningfulChange, generateSummary, matchesKeyword, applyIgnorePatterns } from '../../src/lib/differ.js';
 
 describe('differ', () => {
   describe('computeDiff', () => {
@@ -147,6 +147,27 @@ describe('differ', () => {
       expect(added.count).toBe(2);
       expect(added.items.some(i => i.includes('Rust'))).toBe(true);
       expect(added.items.some(i => i.includes('AI'))).toBe(true);
+    });
+  });
+
+  // ── applyIgnorePatterns ───────────────────────────────────────────────────
+
+  describe('applyIgnorePatterns', () => {
+    it('returns text unchanged when no patterns', () => {
+      expect(applyIgnorePatterns('hello world', '')).toBe('hello world');
+    });
+    it('strips matching patterns', () => {
+      const text = 'Posted 5 minutes ago with 100 points';
+      const patterns = '\\d+\\s*minutes?\\s*ago\n\\d+\\s*points?';
+      const result = applyIgnorePatterns(text, patterns);
+      expect(result).toBe('Posted with');
+    });
+    it('handles invalid regex gracefully', () => {
+      expect(applyIgnorePatterns('test', '[invalid')).toBe('test');
+    });
+    it('normalizes whitespace after stripping', () => {
+      const result = applyIgnorePatterns('A  5 hours ago  B', '\\d+\\s*hours?\\s*ago');
+      expect(result).toBe('A B');
     });
   });
 });

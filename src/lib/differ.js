@@ -104,6 +104,31 @@ export function generateSummary(oldText, newText) {
   };
 }
 
+// ─── Ignore Patterns ──────────────────────────────────────────────────────────
+
+/**
+ * Apply ignore patterns to text before comparison.
+ * Patterns is a newline-separated string of regex patterns.
+ * Each pattern is applied globally to strip matching text.
+ */
+export function applyIgnorePatterns(text, patterns) {
+  if (!patterns || !patterns.trim()) return text;
+
+  let result = text || '';
+  const lines = patterns.split('\n').map(l => l.trim()).filter(Boolean);
+
+  for (const pattern of lines) {
+    try {
+      const regex = new RegExp(pattern, 'gi');
+      result = result.replace(regex, '');
+    } catch {
+      // Invalid regex — skip silently
+    }
+  }
+
+  return result.replace(/\s+/g, ' ').trim();
+}
+
 // ─── Keyword Matching ─────────────────────────────────────────────────────────
 // Improved: works with both list content and plain text.
 // For lists: checks if any NEW item title contains a keyword.

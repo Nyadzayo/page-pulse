@@ -70,6 +70,7 @@ async function loadSidebar() {
       !m.lastChecked ? 'Pending' :
       (Date.now() - m.lastChecked > (m.intervalMs || 3600000) * 3) ? 'Stale' :
       (m.consecutiveErrors > 0) ? 'Flaky' : '';
+    const pausedTag = !m.active ? '<span class="ds-paused">PAUSED</span>' : '';
     return `
       <div class="ds-item ${m.id === currentMonitorId ? 'active' : ''}" data-id="${m.id}">
         <div class="ds-dot ${dotClass}"></div>
@@ -79,6 +80,7 @@ async function loadSidebar() {
           ${healthText ? `<div class="ds-health">${healthText}</div>` : ''}
         </div>
         <span class="ds-badge ${m.changeCount > 0 ? 'changes' : 'zero'}">${m.changeCount > 0 ? m.changeCount : '—'}</span>
+        ${pausedTag}
       </div>
     `;
   }).join('');
@@ -146,6 +148,9 @@ async function selectMonitor(id) {
   // Keywords
   document.getElementById('detail-keywords').value = monitor.keywords || '';
 
+  // Ignore patterns
+  document.getElementById('detail-ignore').value = monitor.ignorePatterns || '';
+
   // Notify mode buttons
   const notifyMode = monitor.notifyMode || NOTIFY_MODES.INSTANT;
   document.querySelectorAll('#notify-mode-options .dm-interval-opt').forEach(btn => {
@@ -170,6 +175,32 @@ async function selectMonitor(id) {
     historyList.innerHTML = history.sort((a, b) => b.ts - a.ts).map(entry => {
       return renderHistoryEntry(entry, diffMode);
     }).join('');
+  }
+
+  // Pause/Resume button state
+  const pauseBtn = document.getElementById('btn-pause');
+  if (monitor.active) {
+    pauseBtn.textContent = 'Pause';
+    pauseBtn.className = 'dm-btn pause';
+  } else {
+    pauseBtn.textContent = 'Resume';
+    pauseBtn.className = 'dm-btn resume';
+  }
+
+  // Show paused banner if inactive
+  let pausedBanner = document.getElementById('paused-banner');
+  if (!monitor.active) {
+    if (!pausedBanner) {
+      pausedBanner = document.createElement('div');
+      pausedBanner.id = 'paused-banner';
+      pausedBanner.className = 'dm-paused-banner';
+      pausedBanner.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg> This monitor is paused — no checks are running';
+      // Insert before stats
+      const stats = document.querySelector('.dm-stats');
+      stats.parentNode.insertBefore(pausedBanner, stats);
+    }
+  } else {
+    pausedBanner?.remove();
   }
 
   // Highlight sidebar
@@ -239,6 +270,17 @@ function setupEventListeners() {
   document.getElementById('sidebar-list').addEventListener('click', e => {
     const item = e.target.closest('.ds-item');
     if (item) selectMonitor(item.dataset.id);
+  });
+
+  document.getElementById('btn-pause')?.addEventListener('click', async () => {
+    if (!currentMonitorId) return;
+    const monitors = await getMonitors();
+    const monitor = monitors[currentMonitorId];
+    if (!monitor) return;
+    const newActive = !monitor.active;
+    await updateMonitor(currentMonitorId, { active: newActive });
+    await selectMonitor(currentMonitorId);
+    await loadSidebar();
   });
 
   document.getElementById('btn-check-now').addEventListener('click', async () => {
@@ -415,6 +457,35 @@ function setupEventListeners() {
       e.preventDefault();
       await saveKeywords();
     }
+  });
+
+  // Ignore patterns textarea — save on blur
+  document.getElementById('detail-ignore')?.addEventListener('blur', async () => {
+    if (!currentMonitorId) return;
+    const value = document.getElementById('detail-ignore').value;
+    await updateMonitor(currentMonitorId, { ignorePatterns: value });
+  });
+
+  // Preset buttons — append pattern to ignore textarea
+  document.querySelector('.dm-presets')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.dm-preset-btn');
+    if (!btn) return;
+    const textarea = document.getElementById('detail-ignore');
+    const current = textarea.value.trim();
+    const pattern = btn.dataset.pattern;
+    textarea.value = current ? current + '\n' + pattern : pattern;
+    if (currentMonitorId) {
+      await updateMonitor(currentMonitorId, { ignorePatterns: textarea.value });
+    }
+  });
+
+  // Notify mode buttons
+  document.getElementById('notify-mode-options')?.addEventListener('click', async e => {
+    const btn = e.target.closest('.dm-interval-opt');
+    if (!btn || !currentMonitorId) return;
+    const mode = btn.dataset.notify;
+    await updateMonitor(currentMonitorId, { notifyMode: mode });
+    await selectMonitor(currentMonitorId);
   });
 
   // Diff mode buttons

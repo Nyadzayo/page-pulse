@@ -791,6 +791,31 @@ html, body {
   color: var(--text-tertiary);
   white-space: nowrap;
 }
+.dm-presets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.dm-preset-btn {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-raised);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+}
+.dm-preset-btn:hover {
+  background: var(--bg-hover);
+  color: var(--accent-text);
+}
+textarea.dm-setting-input {
+  min-height: 60px;
+}
 
 /* ─── Summary Diff ──────────────────────────────────────────────────────────── */
 .dm-summary {

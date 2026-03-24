@@ -1,5 +1,5 @@
 import { STATUS, BROKEN_THRESHOLD, BROKEN_WINDOW_MS, MAX_URLS_PER_TICK } from './constants.js';
-import { hasMeaningfulChange, matchesKeyword } from './differ.js';
+import { hasMeaningfulChange, matchesKeyword, applyIgnorePatterns } from './differ.js';
 
 export function filterDueMonitors(monitors, now) {
   return Object.values(monitors).filter((m) => {
@@ -40,7 +40,12 @@ export function processCheckResults(monitor, result, now) {
 
   const base = { lastChecked: now, consecutiveErrors: 0, firstErrorAt: null, status: STATUS.OK };
 
-  if (hasMeaningfulChange(monitor.baseline, result.text)) {
+  // Apply ignore patterns before comparison
+  const ignorePatterns = monitor.ignorePatterns || '';
+  const cleanedBaseline = applyIgnorePatterns(monitor.baseline, ignorePatterns);
+  const cleanedResult = applyIgnorePatterns(result.text, ignorePatterns);
+
+  if (hasMeaningfulChange(cleanedBaseline, cleanedResult)) {
     // Check keyword filter: if keywords are set and none match the added text,
     // still update baseline (track latest state) but suppress notification/history
     if (monitor.keywords && monitor.keywords.trim() &&
@@ -53,5 +58,7 @@ export function processCheckResults(monitor, result, now) {
       historyEntry: { ts: now, old: monitor.baseline, new: result.text },
     };
   }
-  return { ...base, changed: false };
+  // No meaningful change — but update baseline to latest original text so it stays current
+  const baselineChanged = hasMeaningfulChange(monitor.baseline, result.text);
+  return { ...base, changed: false, ...(baselineChanged ? { baseline: result.text } : {}) };
 }
