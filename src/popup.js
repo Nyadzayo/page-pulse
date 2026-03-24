@@ -38,13 +38,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     listEl.innerHTML = '';
     for (const m of monitorArr.sort((a, b) => b.createdAt - a.createdAt)) {
-      const statusClass = m.status === 'ok' ? 'live' : m.status === 'broken' ? 'error' : 'warn';
-      const metaText = m.status === 'broken'
-        ? `<span style="color:var(--red-text)">Broken · selector not found</span>`
-        : `${timeAgo(m.lastChecked)} <span class="sep">·</span> ${new URL(m.url).hostname}`;
+      // Status: paused overrides other states
+      let statusClass, metaText;
+      if (!m.active) {
+        statusClass = 'paused';
+        metaText = '<span style="color:var(--amber)">Paused</span>';
+      } else if (m.status === 'broken') {
+        statusClass = 'error';
+        metaText = '<span style="color:var(--red-text)">Broken · selector not found</span>';
+      } else {
+        statusClass = 'live';
+        metaText = `${timeAgo(m.lastChecked)} <span class="sep">·</span> ${new URL(m.url).hostname}`;
+      }
 
       const item = document.createElement('div');
       item.className = 'popup-monitor';
+      item.dataset.id = m.id;
       item.innerHTML = `
         <div class="pm-status ${statusClass}"></div>
         <div class="pm-info">
@@ -58,17 +67,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Toggle
+  // Click monitor item → open dashboard to that monitor
   listEl.addEventListener('click', async (e) => {
+    // Toggle button
     const toggle = e.target.closest('.pm-toggle');
-    if (!toggle) return;
-    const id = toggle.dataset.id;
-    const monitor = monitors[id];
-    if (!monitor) return;
-    const newActive = !monitor.active;
-    await updateMonitor(id, { active: newActive });
-    toggle.className = `pm-toggle ${newActive ? 'on' : 'off'}`;
-    monitors[id].active = newActive;
+    if (toggle) {
+      e.stopPropagation();
+      const id = toggle.dataset.id;
+      const monitor = monitors[id];
+      if (!monitor) return;
+      const newActive = !monitor.active;
+      await updateMonitor(id, { active: newActive });
+      toggle.className = `pm-toggle ${newActive ? 'on' : 'off'}`;
+      monitors[id].active = newActive;
+
+      // Update status dot and meta text
+      const item = toggle.closest('.popup-monitor');
+      const dot = item.querySelector('.pm-status');
+      const meta = item.querySelector('.pm-meta');
+      if (!newActive) {
+        dot.className = 'pm-status paused';
+        meta.innerHTML = '<span style="color:var(--amber)">Paused</span>';
+      } else {
+        dot.className = `pm-status ${monitor.status === 'broken' ? 'error' : 'live'}`;
+        meta.innerHTML = `${timeAgo(monitor.lastChecked)} <span class="sep">·</span> ${new URL(monitor.url).hostname}`;
+      }
+      return;
+    }
+
+    // Click on monitor item → open dashboard
+    const item = e.target.closest('.popup-monitor');
+    if (item && item.dataset.id) {
+      chrome.tabs.create({ url: chrome.runtime.getURL(`dashboard.html?monitor=${item.dataset.id}`) });
+      window.close();
+    }
   });
 
   // Add Monitor
