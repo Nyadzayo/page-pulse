@@ -547,12 +547,87 @@ h2 { font-size:11px; font-weight:600; letter-spacing:0.15em; text-transform:uppe
   </div>
 </div>
 
+<h2>03 — Element Selector Screenshot</h2>
+<div class="note">1280x800 — Shows the selection overlay on a product page with highlighted price element.</div>
+
+<div class="ss selector-ss">
+  <div class="ss-page">
+    <div class="ss-browser">
+      <div class="ss-dot r"></div><div class="ss-dot y"></div><div class="ss-dot g"></div>
+      <div class="ss-url">amazon.com/dp/B09XYZ/wireless-smart-widget-pro</div>
+    </div>
+
+    <!-- Dim overlay -->
+    <div style="position:absolute;inset:40px 0 0 0;background:rgba(0,0,0,0.04);z-index:1;"></div>
+
+    <!-- Instruction banner -->
+    <div style="position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:20;background:#0F172A;color:#F1F5F9;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px;white-space:nowrap;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+      Click an element to monitor
+      <span style="font-family:var(--mono);font-size:10px;background:rgba(255,255,255,0.12);padding:2px 6px;border-radius:3px;color:#94A3B8;">ESC</span>
+    </div>
+
+    <div class="ss-content" style="position:relative;z-index:2;">
+      <!-- Breadcrumb -->
+      <div style="font-size:11px;color:#9CA3AF;margin-bottom:16px;">Electronics &rsaquo; Accessories &rsaquo; Widgets</div>
+
+      <!-- Product card -->
+      <div style="background:#fff;border-radius:12px;padding:24px;display:flex;gap:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:20px;">
+        <!-- Product image -->
+        <div style="width:160px;height:160px;background:linear-gradient(135deg,#E0E7FF,#C7D2FE);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:48px;color:#818CF8;flex-shrink:0;">W</div>
+        <!-- Product info -->
+        <div style="flex:1;">
+          <div style="font-size:20px;font-weight:700;color:#111827;margin-bottom:6px;letter-spacing:-0.02em;">Wireless Smart Widget Pro</div>
+          <div style="font-size:13px;color:#6B7280;margin-bottom:4px;line-height:1.5;">Premium wireless widget with Bluetooth 5.3 auto-sync</div>
+          <div style="font-size:13px;color:#6B7280;margin-bottom:14px;">and 24-hour battery life. Rated 4.8 stars.</div>
+          <!-- HIGHLIGHTED PRICE -->
+          <div style="display:inline-block;font-size:28px;font-weight:800;color:#059669;outline:3px solid #2563EB;outline-offset:4px;background:rgba(37,99,235,0.06);padding:4px 12px;border-radius:6px;letter-spacing:-0.02em;">$29.99</div>
+          <div style="font-size:12px;color:#9CA3AF;margin-top:10px;">In Stock &middot; Free delivery tomorrow</div>
+        </div>
+      </div>
+
+      <!-- Second card -->
+      <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.04);display:flex;gap:20px;">
+        <div style="width:100px;height:100px;background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:32px;color:#D97706;">A</div>
+        <div style="flex:1;">
+          <div style="font-size:16px;font-weight:700;color:#111827;margin-bottom:4px;">Smart Widget Accessories Pack</div>
+          <div style="font-size:12px;color:#6B7280;margin-bottom:8px;">Compatible cables, cases, and charging dock.</div>
+          <div style="font-size:18px;font-weight:700;color:#059669;">$14.99</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right side content -->
+    <div style="position:absolute;top:100px;right:40px;width:360px;z-index:2;">
+      <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.04);margin-bottom:14px;">
+        <div style="height:12px;width:200px;background:#D1D5DB;border-radius:2px;margin-bottom:10px;"></div>
+        <div style="height:9px;width:90%;background:#E5E7EB;border-radius:2px;margin-bottom:6px;"></div>
+        <div style="height:9px;width:70%;background:#E5E7EB;border-radius:2px;margin-bottom:6px;"></div>
+        <div style="height:9px;width:80%;background:#E5E7EB;border-radius:2px;"></div>
+      </div>
+      <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+        <div style="height:12px;width:160px;background:#D1D5DB;border-radius:2px;margin-bottom:10px;"></div>
+        <div style="height:9px;width:85%;background:#E5E7EB;border-radius:2px;margin-bottom:6px;"></div>
+        <div style="height:9px;width:65%;background:#E5E7EB;border-radius:2px;"></div>
+      </div>
+    </div>
+
+    <!-- Toast confirmation -->
+    <div style="position:absolute;bottom:24px;right:24px;z-index:20;background:#059669;color:white;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(5,150,105,0.4);display:flex;align-items:center;gap:8px;">
+      <span style="width:18px;height:18px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;">&#10003;</span>
+      Monitor added &middot; checking every 5m
+      <span style="color:rgba(255,255,255,0.7);text-decoration:underline;margin-left:4px;">Edit</span>
+    </div>
+  </div>
+</div>
+
 <div class="group" style="margin-top:60px;">
   <h2>Download Screenshots</h2>
   <div class="note">Click each button to download at exactly 1280x800 pixels — guaranteed to pass CWS validation.</div>
   <div style="display:flex;gap:12px;flex-wrap:wrap;">
     <button onclick="downloadScreenshot('.ss', 'pagepulse-screenshot-popup.png')" style="padding:12px 24px;background:#10B981;color:#000;border:none;border-radius:8px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;">Download Popup Screenshot</button>
     <button onclick="downloadScreenshot('.dash', 'pagepulse-screenshot-dashboard.png')" style="padding:12px 24px;background:#10B981;color:#000;border:none;border-radius:8px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;">Download Dashboard Screenshot</button>
+    <button onclick="downloadScreenshot('.selector-ss', 'pagepulse-screenshot-selector.png')" style="padding:12px 24px;background:#10B981;color:#000;border:none;border-radius:8px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;">Download Selector Screenshot</button>
   </div>
   <div id="download-status" style="margin-top:12px;font-size:13px;color:var(--dim);"></div>
 </div>
