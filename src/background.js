@@ -2,7 +2,7 @@ import { getMonitors, getSettings, updateMonitor, saveMonitor, appendHistory, ge
 import { filterDueMonitors, groupByUrl, processCheckResults, limitUrlBatch } from './lib/scheduler.js';
 import { hasOriginAccess, extractOrigin } from './lib/permissions.js';
 import { notifyBatch, updateBadge } from './lib/notifications.js';
-import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, NOTIFY_MODES } from './lib/constants.js';
+import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, NOTIFY_MODES, RENDER_MODES } from './lib/constants.js';
 
 // --- Alarm Setup + Context Menu ---
 chrome.runtime.onInstalled.addListener(() => {
@@ -57,6 +57,71 @@ async function queryOffscreen(html, queries) {
   });
 }
 
+// --- Browser Render: open hidden tab, wait for JS, extract content ---
+async function browserRenderExtract(url, queries) {
+  let tabId = null;
+  try {
+    // Create a hidden tab
+    const tab = await chrome.tabs.create({ url, active: false });
+    tabId = tab.id;
+
+    // Wait for the page to fully load
+    await new Promise((resolve) => {
+      const listener = (updatedTabId, changeInfo) => {
+        if (updatedTabId === tabId && changeInfo.status === 'complete') {
+          chrome.tabs.onUpdated.removeListener(listener);
+          resolve();
+        }
+      };
+      chrome.tabs.onUpdated.addListener(listener);
+      // Timeout after 30 seconds
+      setTimeout(() => {
+        chrome.tabs.onUpdated.removeListener(listener);
+        resolve();
+      }, 30000);
+    });
+
+    // Give JS extra time to render dynamic content
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Inject extraction script
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (queryList) => {
+        return queryList.map(({ monitorId, selector, xpath }) => {
+          // Try CSS selector
+          if (selector) {
+            try {
+              const el = document.querySelector(selector);
+              if (el) return { monitorId, text: el.textContent.trim(), matchedBy: 'selector' };
+            } catch {}
+          }
+          // Try XPath
+          if (xpath) {
+            try {
+              const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+              const el = result.singleNodeValue;
+              if (el) return { monitorId, text: el.textContent.trim(), matchedBy: 'xpath' };
+            } catch {}
+          }
+          return { monitorId, text: null, matchedBy: null };
+        });
+      },
+      args: [queries],
+    });
+
+    return results?.[0]?.result || queries.map(q => ({ monitorId: q.monitorId, text: null, matchedBy: null }));
+  } catch (e) {
+    console.error('[PagePulse] Browser render failed:', e);
+    return queries.map(q => ({ monitorId: q.monitorId, text: null, matchedBy: null }));
+  } finally {
+    // Always close the tab
+    if (tabId) {
+      try { await chrome.tabs.remove(tabId); } catch {}
+    }
+  }
+}
+
 // --- Tick Handler ---
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === ALARM_NAME) await runTick();
@@ -88,30 +153,38 @@ async function runTick() {
       continue;
     }
 
-    // Fetch page
-    let html;
-    try {
-      const response = await fetch(url, { redirect: 'follow' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      html = await response.text();
-    } catch {
-      for (const m of monitorsForUrl) {
-        const result = { monitorId: m.id, text: null, matchedBy: null };
-        const updates = processCheckResults(m, result, now);
-        const { changed, historyEntry, ...storageUpdates } = updates;
-        await updateMonitor(m.id, storageUpdates);
-      }
-      continue;
-    }
-
-    // Parse and query
+    // Build query list
     const queries = monitorsForUrl.map((m) => ({
       monitorId: m.id,
       selector: m.selector,
       xpath: m.xpath,
     }));
 
-    const results = await queryOffscreen(html, queries);
+    // Check if any monitor on this URL needs browser rendering
+    const needsBrowser = monitorsForUrl.some(m => m.renderMode === RENDER_MODES.BROWSER);
+    let results;
+
+    if (needsBrowser) {
+      // Browser render: open hidden tab, let JS execute, extract content
+      results = await browserRenderExtract(url, queries);
+    } else {
+      // Standard fetch: fast, works for static/SSR pages
+      let html;
+      try {
+        const response = await fetch(url, { redirect: 'follow' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        html = await response.text();
+      } catch {
+        for (const m of monitorsForUrl) {
+          const result = { monitorId: m.id, text: null, matchedBy: null };
+          const updates = processCheckResults(m, result, now);
+          const { changed, historyEntry, ...storageUpdates } = updates;
+          await updateMonitor(m.id, storageUpdates);
+        }
+        continue;
+      }
+      results = await queryOffscreen(html, queries);
+    }
 
     // Process results
     for (const result of results) {

@@ -154,6 +154,12 @@ async function selectMonitor(id) {
   // Keywords
   document.getElementById('detail-keywords').value = monitor.keywords || '';
 
+  // Render mode buttons
+  const renderMode = monitor.renderMode || 'fetch';
+  document.querySelectorAll('#render-mode-options .dm-interval-opt').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.render === renderMode);
+  });
+
   // Ignore patterns
   document.getElementById('detail-ignore').value = monitor.ignorePatterns || '';
 
@@ -507,6 +513,15 @@ function setupEventListeners() {
     if (!btn || !currentMonitorId) return;
     const mode = btn.dataset.notify;
     await updateMonitor(currentMonitorId, { notifyMode: mode });
+    await selectMonitor(currentMonitorId);
+  });
+
+  // Render mode buttons
+  document.getElementById('render-mode-options')?.addEventListener('click', async e => {
+    const btn = e.target.closest('.dm-interval-opt');
+    if (!btn || !currentMonitorId) return;
+    const mode = btn.dataset.render;
+    await updateMonitor(currentMonitorId, { renderMode: mode });
     await selectMonitor(currentMonitorId);
   });
 

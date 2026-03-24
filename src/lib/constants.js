@@ -1,3 +1,8 @@
+export const RENDER_MODES = {
+  FETCH: 'fetch',     // Default: raw HTML fetch (fast, works for static/SSR pages)
+  BROWSER: 'browser',  // Opens hidden tab, renders JS, extracts content (works for SPAs + login pages)
+};
+
 export const ALARM_NAME = 'pagepulse-tick';
 export const ALARM_PERIOD_MINUTES = 1;
 

@@ -92,6 +92,14 @@
 
           <div class="dm-monitor-settings">
             <div class="dm-setting">
+              <label class="dm-setting-label">Page type</label>
+              <div id="render-mode-options" class="dm-interval-options">
+                <button class="dm-interval-opt" data-render="fetch">Standard</button>
+                <button class="dm-interval-opt" data-render="browser">JS Rendered</button>
+              </div>
+              <span class="dm-setting-hint">Use "JS Rendered" for SPAs, login-required pages, or dynamic sites</span>
+            </div>
+            <div class="dm-setting">
               <label class="dm-setting-label">Keywords</label>
               <input id="detail-keywords" type="text" class="dm-setting-input" placeholder="e.g. rust, AI, hiring (empty = all changes)">
               <span class="dm-setting-hint">Only notify when change contains these words</span>
