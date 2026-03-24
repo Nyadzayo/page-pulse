@@ -43,12 +43,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     listEl.innerHTML = `
       <div class="popup-empty">
         <div class="popup-empty-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="12" cy="12" r="10"/><path d="M12 8v8m-4-4h8"/>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M2 12h4l3-9 4 18 3-9h4"/>
           </svg>
         </div>
-        <h3>No monitors yet</h3>
-        <p>Click below to select an element on a page and start tracking changes.</p>
+        <h3>Start monitoring</h3>
+        <p>Click "Add Monitor" to select an element on this page. You'll be asked to allow access, then pick what to track.</p>
       </div>
     `;
   } else {
@@ -180,10 +180,14 @@ async function startAddMonitor(limits) {
     return;
   }
 
-  // Need permission — request it
+  // Need permission — request it (this shows Chrome's permission dialog)
   const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
   if (!granted) return;
 
+  // Permission granted → inject content script directly from background
+  // (popup may lose focus during permission dialog, so send message and close)
   chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id }, () => void chrome.runtime.lastError);
-  window.close();
+
+  // Small delay to ensure message is sent before popup closes
+  setTimeout(() => window.close(), 100);
 }
