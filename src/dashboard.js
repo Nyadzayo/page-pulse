@@ -198,19 +198,52 @@ function setupEventListeners() {
     await selectMonitor(currentMonitorId);
   });
 
-  document.getElementById('btn-export').addEventListener('click', async () => {
+  // Export dropdown
+  const exportBtn = document.getElementById('btn-export');
+  const exportMenu = document.getElementById('export-menu');
+
+  exportBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    exportMenu.classList.toggle('open');
+  });
+
+  // Close dropdown on outside click
+  document.addEventListener('click', () => exportMenu.classList.remove('open'));
+
+  document.getElementById('btn-export-json').addEventListener('click', async () => {
+    exportMenu.classList.remove('open');
     if (!currentMonitorId) return;
     const history = await getHistory(currentMonitorId);
     const monitors = await getMonitors();
     const monitor = monitors[currentMonitorId];
     const data = { monitor: { label: monitor.label, url: monitor.url }, history };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pagepulse-${monitor.label.replace(/\s+/g, '-')}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadFile(
+      JSON.stringify(data, null, 2),
+      `pagepulse-${safeName(monitor.label)}.json`,
+      'application/json'
+    );
+  });
+
+  document.getElementById('btn-export-csv').addEventListener('click', async () => {
+    exportMenu.classList.remove('open');
+    if (!currentMonitorId) return;
+    const history = await getHistory(currentMonitorId);
+    const monitors = await getMonitors();
+    const monitor = monitors[currentMonitorId];
+
+    const rows = [['Timestamp', 'Date', 'Old Value', 'New Value', 'Monitor', 'URL']];
+    for (const entry of history.sort((a, b) => b.ts - a.ts)) {
+      rows.push([
+        entry.ts,
+        new Date(entry.ts).toISOString(),
+        csvEscape(entry.old),
+        csvEscape(entry.new),
+        csvEscape(monitor.label),
+        csvEscape(monitor.url),
+      ]);
+    }
+    const csv = rows.map(r => r.join(',')).join('\n');
+    downloadFile(csv, `pagepulse-${safeName(monitor.label)}.csv`, 'text/csv');
   });
 }
 
@@ -233,4 +266,25 @@ function escapeHtml(str) {
 
 function playChimePreview() {
   playChime(0.5);
+}
+
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function csvEscape(value) {
+  const str = String(value || '').replace(/"/g, '""');
+  return str.includes(',') || str.includes('"') || str.includes('\n')
+    ? `"${str}"`
+    : str;
+}
+
+function safeName(label) {
+  return (label || 'monitor').replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-');
 }

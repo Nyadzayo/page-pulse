@@ -848,3 +848,46 @@ html, body {
   color: var(--text-primary);
 }
 .theme-toggle svg { width: 16px; height: 16px; }
+
+/* ─── Export Dropdown ──────────────────────────────────────────────────────── */
+.dm-export-wrap {
+  position: relative;
+}
+.dm-export-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 100;
+  min-width: 160px;
+  overflow: hidden;
+}
+.dm-export-menu.open {
+  display: block;
+}
+.dm-export-opt {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.dm-export-opt:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.dm-export-opt + .dm-export-opt {
+  border-top: 1px solid var(--border-subtle);
+}
