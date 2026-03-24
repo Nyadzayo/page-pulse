@@ -205,7 +205,7 @@ h2 { font-size:11px; font-weight:600; letter-spacing:0.15em; text-transform:uppe
   display:flex; align-items:center; gap:10px;
   padding:10px; border-radius:8px; margin-bottom:2px;
 }
-.ds.act { background:rgba(28,43,58,1); border-left:3px solid var(--accent); }
+.ds.act { background:rgba(28,43,58,1); }
 .ds-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
 .ds-dot.ok { background:var(--accent); }
 .ds-dot.err { background:var(--red); }
@@ -546,6 +546,62 @@ h2 { font-size:11px; font-weight:600; letter-spacing:0.15em; text-transform:uppe
     <span class="privacy-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Local only — your data never leaves your device</span>
   </div>
 </div>
+
+<div class="group" style="margin-top:60px;">
+  <h2>Download Screenshots</h2>
+  <div class="note">Click each button to download at exactly 1280x800 pixels — guaranteed to pass CWS validation.</div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;">
+    <button onclick="downloadScreenshot('.ss', 'pagepulse-screenshot-popup.png')" style="padding:12px 24px;background:#10B981;color:#000;border:none;border-radius:8px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;">Download Popup Screenshot</button>
+    <button onclick="downloadScreenshot('.dash', 'pagepulse-screenshot-dashboard.png')" style="padding:12px 24px;background:#10B981;color:#000;border:none;border-radius:8px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;">Download Dashboard Screenshot</button>
+  </div>
+  <div id="download-status" style="margin-top:12px;font-size:13px;color:var(--dim);"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+async function downloadScreenshot(selector, filename) {
+  const el = document.querySelector(selector);
+  const status = document.getElementById('download-status');
+  status.textContent = 'Rendering...';
+
+  try {
+    const canvas = await html2canvas(el, {
+      width: 1280,
+      height: 800,
+      scale: 1, // Force 1x — no DPI scaling
+      useCORS: true,
+      backgroundColor: null,
+      logging: false,
+    });
+
+    // Verify exact dimensions
+    if (canvas.width !== 1280 || canvas.height !== 800) {
+      // Resize to exact dimensions
+      const resized = document.createElement('canvas');
+      resized.width = 1280;
+      resized.height = 800;
+      const ctx = resized.getContext('2d');
+      ctx.drawImage(canvas, 0, 0, 1280, 800);
+      downloadCanvas(resized, filename);
+    } else {
+      downloadCanvas(canvas, filename);
+    }
+
+    status.textContent = `Downloaded ${filename} (1280x800)`;
+    status.style.color = '#10B981';
+  } catch (e) {
+    status.textContent = 'Error: ' + e.message;
+    status.style.color = '#EF4444';
+  }
+}
+
+function downloadCanvas(canvas, filename) {
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+</script>
 
 </body>
 </html>
