@@ -1,10 +1,20 @@
 import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor } from './lib/storage.js';
 import { computeDiff } from './lib/differ.js';
 import { INTERVALS, TIER_LIMITS } from './lib/constants.js';
+import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
 
 let currentMonitorId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Theme
+  initTheme();
+  const themeBtn = document.getElementById('btn-theme');
+  themeBtn.innerHTML = getTheme() === 'dark' ? sunIcon : moonIcon;
+  themeBtn.addEventListener('click', () => {
+    const next = toggleTheme();
+    themeBtn.innerHTML = next === 'dark' ? sunIcon : moonIcon;
+  });
+
   await loadSidebar();
   setupEventListeners();
   const params = new URLSearchParams(window.location.search);

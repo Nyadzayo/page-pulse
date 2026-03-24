@@ -39,6 +39,44 @@
   --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
 
   --sidebar-width: 260px;
+}
+
+/* ─── Light Theme ──────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-root:      #F8FAFC;
+  --bg-canvas:    #F1F5F9;
+  --bg-surface:   #FFFFFF;
+  --bg-raised:    #F8FAFC;
+  --bg-elevated:  #E2E8F0;
+  --bg-hover:     #F1F5F9;
+  --bg-active:    #EFF6FF;
+
+  --border-subtle:  rgba(0, 0, 0, 0.04);
+  --border-default: rgba(0, 0, 0, 0.08);
+  --border-strong:  rgba(0, 0, 0, 0.12);
+
+  --accent:      #059669;
+  --accent-dim:  rgba(5, 150, 105, 0.10);
+  --accent-glow: rgba(5, 150, 105, 0.20);
+  --accent-text: #047857;
+
+  --red:      #DC2626;
+  --red-dim:  rgba(220, 38, 38, 0.08);
+  --red-text: #B91C1C;
+  --red-glow: rgba(220, 38, 38, 0.15);
+
+  --amber: #D97706;
+  --amber-glow: rgba(217, 119, 6, 0.20);
+
+  --diff-add-bg:   rgba(5, 150, 105, 0.12);
+  --diff-add-text: #047857;
+  --diff-del-bg:   rgba(220, 38, 38, 0.10);
+  --diff-del-text: #B91C1C;
+
+  --text-primary:   #111827;
+  --text-secondary: #4B5563;
+  --text-tertiary:  #9CA3AF;
+  --text-disabled:  #D1D5DB;
   --header-height: 52px;
   --radius-sm: 5px;
   --radius-md: 7px;
@@ -789,3 +827,24 @@ html, body {
 }
 
 .dash-version { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); }
+
+/* ─── Theme Toggle ─────────────────────────────────────────────────────────── */
+.theme-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-raised);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.theme-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.theme-toggle svg { width: 16px; height: 16px; }

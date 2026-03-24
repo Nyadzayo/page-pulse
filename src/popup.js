@@ -1,7 +1,17 @@
 import { getMonitors, getSettings, updateMonitor } from './lib/storage.js';
 import { TIER_LIMITS } from './lib/constants.js';
+import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Theme
+  initTheme();
+  const themeBtn = document.getElementById('btn-theme');
+  themeBtn.innerHTML = getTheme() === 'dark' ? sunIcon : moonIcon;
+  themeBtn.addEventListener('click', () => {
+    const next = toggleTheme();
+    themeBtn.innerHTML = next === 'dark' ? sunIcon : moonIcon;
+  });
+
   // Clear badge when popup opens
   chrome.action.setBadgeText({ text: '' });
 
