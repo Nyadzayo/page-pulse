@@ -1,6 +1,6 @@
-import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor, updateSettings } from './lib/storage.js';
+import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor, updateSettings, saveMonitor } from './lib/storage.js';
 import { computeDiff, generateSummary, matchesKeyword } from './lib/differ.js';
-import { INTERVALS, TIER_LIMITS, DIFF_MODES, NOTIFY_MODES } from './lib/constants.js';
+import { INTERVALS, TIER_LIMITS, DIFF_MODES, NOTIFY_MODES, STATUS } from './lib/constants.js';
 import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
 import { playChime } from './lib/sound.js';
 
@@ -39,6 +39,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
   const targetId = params.get('monitor');
   if (targetId) selectMonitor(targetId);
+
+  // Handle shared monitor import
+  const importData = params.get('import');
+  if (importData) {
+    handleImport(importData);
+  }
 
   // Auto-refresh every 30 seconds
   setInterval(async () => {
@@ -311,6 +317,14 @@ function setupEventListeners() {
     btn.disabled = false;
   });
 
+  // Share button
+  document.getElementById('btn-share').addEventListener('click', async () => {
+    if (!currentMonitorId) return;
+    const monitors = await getMonitors();
+    const monitor = monitors[currentMonitorId];
+    if (monitor) showShareModal(monitor);
+  });
+
   document.getElementById('btn-delete').addEventListener('click', async () => {
     if (!currentMonitorId) return;
     if (!confirm('Delete this monitor and its history?')) return;
@@ -579,4 +593,158 @@ function toggleShortcutsHelp() {
 
 function hideShortcutsHelp() {
   document.getElementById('shortcuts-overlay')?.remove();
+}
+
+// ─── Share & Import ─────────────────────────────────────────────────────────
+
+function encodeMonitorConfig(monitor) {
+  const config = {
+    url: monitor.url,
+    selector: monitor.selector,
+    xpath: monitor.xpath,
+    label: monitor.label,
+    intervalMs: monitor.intervalMs,
+    keywords: monitor.keywords || '',
+    ignorePatterns: monitor.ignorePatterns || '',
+    diffMode: monitor.diffMode || 'summary',
+    notifyMode: monitor.notifyMode || 'instant',
+  };
+  return btoa(unescape(encodeURIComponent(JSON.stringify(config))));
+}
+
+function decodeMonitorConfig(encoded) {
+  try {
+    return JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  } catch {
+    return null;
+  }
+}
+
+function showShareModal(monitor) {
+  const encoded = encodeMonitorConfig(monitor);
+  const dashboardUrl = chrome.runtime.getURL('dashboard.html');
+  const shareLink = `${dashboardUrl}?import=${encoded}`;
+
+  const shareText = [
+    `I'm tracking changes on ${new URL(monitor.url).hostname} with PagePulse`,
+    ``,
+    `Monitor: ${monitor.label}`,
+    `URL: ${monitor.url}`,
+    monitor.keywords ? `Keywords: ${monitor.keywords}` : '',
+    `Check interval: ${INTERVALS.find(i => i.ms === monitor.intervalMs)?.label || 'custom'}`,
+    ``,
+    `Get PagePulse (free): https://chromewebstore.google.com/detail/pagepulse`,
+  ].filter(Boolean).join('\n');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'share-overlay';
+  overlay.innerHTML = `
+    <div class="share-modal">
+      <div class="share-title">Share Monitor</div>
+      <div class="share-subtitle">Share this monitor config — others with PagePulse can import it with one click</div>
+      <div class="share-link-box">
+        <input class="share-link-input" value="${escapeHtml(shareLink)}" readonly>
+        <button class="share-copy-btn" id="share-copy-link">Copy Link</button>
+      </div>
+      <div class="share-subtitle">Or share as text:</div>
+      <div class="share-text-box">${escapeHtml(shareText)}</div>
+      <div style="display:flex;gap:8px;">
+        <button class="share-copy-btn" id="share-copy-text" style="flex:1;">Copy Text</button>
+        <button class="dm-btn" id="share-close" style="flex:1;">Close</button>
+      </div>
+      <div class="share-branding">PagePulse — free website change monitor</div>
+    </div>
+  `;
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  overlay.querySelector('#share-copy-link').addEventListener('click', async () => {
+    const input = overlay.querySelector('.share-link-input');
+    await navigator.clipboard.writeText(input.value);
+    overlay.querySelector('#share-copy-link').textContent = 'Copied!';
+    setTimeout(() => overlay.querySelector('#share-copy-link').textContent = 'Copy Link', 2000);
+  });
+
+  overlay.querySelector('#share-copy-text').addEventListener('click', async () => {
+    await navigator.clipboard.writeText(shareText);
+    overlay.querySelector('#share-copy-text').textContent = 'Copied!';
+    setTimeout(() => overlay.querySelector('#share-copy-text').textContent = 'Copy Text', 2000);
+  });
+
+  overlay.querySelector('#share-close').addEventListener('click', () => overlay.remove());
+
+  document.body.appendChild(overlay);
+}
+
+async function handleImport(encodedData) {
+  const config = decodeMonitorConfig(encodedData);
+  if (!config || !config.url) return;
+
+  const banner = document.getElementById('import-banner');
+  document.getElementById('import-label').textContent = `Import: ${config.label || 'Monitor'}`;
+  document.getElementById('import-url').textContent = config.url;
+  banner.style.display = 'flex';
+
+  // Hide the no-selection text
+  document.getElementById('no-selection').style.display = 'none';
+  document.getElementById('monitor-detail').style.display = 'block';
+
+  document.getElementById('btn-import-add').addEventListener('click', async () => {
+    // Request permission for the origin
+    const origin = new URL(config.url).origin;
+    const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
+    if (!granted) {
+      alert('Permission needed to monitor this site.');
+      return;
+    }
+
+    // Create the monitor
+    const monitor = {
+      id: crypto.randomUUID(),
+      url: config.url,
+      origin,
+      selector: config.selector || '',
+      xpath: config.xpath || '',
+      textFingerprint: '',
+      label: config.label || `Monitor on ${new URL(config.url).hostname}`,
+      baseline: '',
+      intervalMs: config.intervalMs || 3600000,
+      keywords: config.keywords || '',
+      ignorePatterns: config.ignorePatterns || '',
+      diffMode: config.diffMode || 'summary',
+      notifyMode: config.notifyMode || 'instant',
+      lastChecked: null,
+      lastChanged: null,
+      changeCount: 0,
+      status: STATUS.OK,
+      consecutiveErrors: 0,
+      firstErrorAt: null,
+      active: true,
+      createdAt: Date.now(),
+    };
+
+    await saveMonitor(monitor);
+    banner.style.display = 'none';
+
+    // Clean URL
+    window.history.replaceState({}, '', 'dashboard.html');
+
+    // Refresh and select
+    await loadSidebar();
+    await selectMonitor(monitor.id);
+
+    // Trigger first check
+    await chrome.runtime.sendMessage({ action: 'checkNow', monitorId: monitor.id });
+    await selectMonitor(monitor.id);
+    await loadSidebar();
+  });
+
+  document.getElementById('btn-import-dismiss').addEventListener('click', () => {
+    banner.style.display = 'none';
+    window.history.replaceState({}, '', 'dashboard.html');
+    document.getElementById('no-selection').style.display = 'flex';
+    document.getElementById('monitor-detail').style.display = 'none';
+  });
 }

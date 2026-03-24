@@ -1,16 +1,18 @@
-import { getMonitors, getSettings, updateMonitor, saveMonitor, appendHistory, getMonitor } from './lib/storage.js';
+import { getMonitors, getSettings, updateMonitor, saveMonitor, appendHistory, getMonitor, getPendingDigest, addPendingDigest, clearPendingDigest } from './lib/storage.js';
 import { filterDueMonitors, groupByUrl, processCheckResults, limitUrlBatch } from './lib/scheduler.js';
 import { hasOriginAccess, extractOrigin } from './lib/permissions.js';
-import { notifyBatch } from './lib/notifications.js';
-import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS } from './lib/constants.js';
+import { notifyBatch, updateBadge } from './lib/notifications.js';
+import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, NOTIFY_MODES } from './lib/constants.js';
 
 // --- Alarm Setup ---
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
+  chrome.alarms.create(DIGEST_ALARM_NAME, { periodInMinutes: 60 });
 });
 
 chrome.runtime.onStartup.addListener(() => {
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
+  chrome.alarms.create(DIGEST_ALARM_NAME, { periodInMinutes: 60 });
 });
 
 // --- Offscreen Document Management ---
@@ -50,8 +52,8 @@ async function queryOffscreen(html, queries) {
 
 // --- Tick Handler ---
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name !== ALARM_NAME) return;
-  await runTick();
+  if (alarm.name === ALARM_NAME) await runTick();
+  if (alarm.name === DIGEST_ALARM_NAME) await runDigest();
 });
 
 async function runTick() {
@@ -128,15 +130,85 @@ async function runTick() {
   if (changes.length > 0) {
     console.log(`[PagePulse] ${changes.length} change(s) detected, notificationsEnabled: ${settings.notificationsEnabled}`);
     if (settings.notificationsEnabled) {
-      // Ensure offscreen is open for sound playback
-      await ensureOffscreen();
-      await notifyBatch(changes, settings.soundEnabled !== false);
-      console.log(`[PagePulse] Notifications fired`);
-      // Give sound time to play before closing
-      setTimeout(closeOffscreen, 2000);
+      // Split changes into instant vs digest
+      const instantChanges = [];
+      for (const change of changes) {
+        const mode = change.monitor.notifyMode || NOTIFY_MODES.INSTANT;
+        if (mode === NOTIFY_MODES.DIGEST) {
+          await addPendingDigest({
+            monitorId: change.monitor.id,
+            label: change.monitor.label,
+            newValue: change.newValue,
+            ts: Date.now(),
+          });
+        } else {
+          instantChanges.push(change);
+        }
+      }
+
+      // Update badge with total (instant fires + pending digest count)
+      const pendingCount = (await getPendingDigest()).length;
+      const totalBadge = instantChanges.length + pendingCount;
+      updateBadge(totalBadge);
+
+      if (instantChanges.length > 0) {
+        // Ensure offscreen is open for sound playback
+        await ensureOffscreen();
+        await notifyBatch(instantChanges, settings.soundEnabled !== false);
+        console.log(`[PagePulse] Notifications fired`);
+        // Give sound time to play before closing
+        setTimeout(closeOffscreen, 2000);
+      }
     }
   } else {
     await closeOffscreen();
+  }
+}
+
+// --- Digest Handler ---
+async function runDigest() {
+  const pending = await getPendingDigest();
+  if (pending.length === 0) return;
+
+  const settings = await getSettings();
+  if (!settings.notificationsEnabled) {
+    await clearPendingDigest();
+    return;
+  }
+
+  // Group by monitor
+  const byMonitor = {};
+  for (const entry of pending) {
+    if (!byMonitor[entry.monitorId]) byMonitor[entry.monitorId] = [];
+    byMonitor[entry.monitorId].push(entry);
+  }
+
+  const monitorCount = Object.keys(byMonitor).length;
+  const changeCount = pending.length;
+
+  // Fire one digest notification
+  try {
+    await chrome.notifications.create(`pagepulse-digest-${Date.now()}`, {
+      type: 'basic',
+      title: 'PagePulse Digest',
+      message: `${changeCount} change${changeCount > 1 ? 's' : ''} detected across ${monitorCount} monitor${monitorCount > 1 ? 's' : ''}`,
+      iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
+      priority: 2,
+    });
+  } catch (e) {
+    console.error('[PagePulse] Digest notification failed:', e);
+  }
+
+  await clearPendingDigest();
+
+  // Play sound if enabled
+  if (settings.soundEnabled !== false) {
+    await ensureOffscreen();
+    chrome.runtime.sendMessage(
+      { target: 'offscreen', action: 'playSound' },
+      () => void chrome.runtime.lastError
+    );
+    setTimeout(closeOffscreen, 2000);
   }
 }
 

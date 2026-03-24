@@ -56,3 +56,18 @@ export async function updateSettings(updates) {
   const current = await getSettings();
   await chrome.storage.local.set({ [STORAGE_KEYS.SETTINGS]: { ...current, ...updates } });
 }
+
+export async function getPendingDigest() {
+  const result = await chrome.storage.local.get('pendingDigest');
+  return result.pendingDigest || [];
+}
+
+export async function addPendingDigest(entry) {
+  const pending = await getPendingDigest();
+  pending.push(entry);
+  await chrome.storage.local.set({ pendingDigest: pending });
+}
+
+export async function clearPendingDigest() {
+  await chrome.storage.local.set({ pendingDigest: [] });
+}

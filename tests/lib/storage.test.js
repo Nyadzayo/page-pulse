@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   getMonitors, getMonitor, saveMonitor, deleteMonitor, updateMonitor,
   getHistory, appendHistory, getSettings, updateSettings,
+  getPendingDigest, addPendingDigest, clearPendingDigest,
 } from '../../src/lib/storage.js';
 import { STORAGE_KEYS, DEFAULT_SETTINGS, TIERS, TIER_LIMITS } from '../../src/lib/constants.js';
 
@@ -84,6 +85,20 @@ describe('storage', () => {
       const settings = await getSettings();
       expect(settings.tier).toBe(TIERS.PRO);
       expect(settings.notificationsEnabled).toBe(true);
+    });
+  });
+
+  describe('pending digest', () => {
+    it('starts empty', async () => {
+      expect(await getPendingDigest()).toEqual([]);
+    });
+
+    it('adds and clears entries', async () => {
+      await addPendingDigest({ monitorId: 'm1', label: 'Test', ts: 1 });
+      await addPendingDigest({ monitorId: 'm2', label: 'Test2', ts: 2 });
+      expect(await getPendingDigest()).toHaveLength(2);
+      await clearPendingDigest();
+      expect(await getPendingDigest()).toEqual([]);
     });
   });
 });

@@ -1175,3 +1175,130 @@ textarea.dm-setting-input {
   font-size: 12px;
   color: var(--text-secondary);
 }
+
+/* ─── Share Button ─────────────────────────────────────────────────────────── */
+.dm-btn.share {
+  background: var(--accent-dim);
+  color: var(--accent-text);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+.dm-btn.share:hover {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+/* ─── Import Banner ────────────────────────────────────────────────────────── */
+.dm-import-banner {
+  background: var(--accent-dim);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--radius-lg, 10px);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.dm-import-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--accent-text);
+}
+.dm-import-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+.dm-import-url {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--accent-text);
+  margin-top: 2px;
+}
+.dm-import-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ─── Share Modal ──────────────────────────────────────────────────────────── */
+.share-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.share-modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 24px;
+  width: 480px;
+  max-width: 90vw;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+}
+.share-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.share-subtitle {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: 16px;
+}
+.share-link-box {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.share-link-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  color: var(--accent-text);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.share-copy-btn {
+  padding: 8px 16px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.share-copy-btn:hover { background: #059669; }
+.share-text-box {
+  padding: 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  font-family: var(--font-mono, monospace);
+  margin-bottom: 12px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.share-branding {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-align: center;
+}

@@ -57,7 +57,23 @@
                   <button id="btn-export-json" class="dm-export-opt">Export as JSON</button>
                 </div>
               </div>
+              <button id="btn-share" class="dm-btn share">Share</button>
               <button id="btn-delete" class="dm-btn danger">Delete</button>
+            </div>
+          </div>
+
+          <!-- Import banner (shown when opening a shared link) -->
+          <div id="import-banner" class="dm-import-banner" style="display:none;">
+            <div class="dm-import-content">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              <div>
+                <div id="import-label" class="dm-import-label"></div>
+                <div id="import-url" class="dm-import-url"></div>
+              </div>
+            </div>
+            <div class="dm-import-actions">
+              <button id="btn-import-add" class="dm-btn check">Add Monitor</button>
+              <button id="btn-import-dismiss" class="dm-btn">Dismiss</button>
             </div>
           </div>
 

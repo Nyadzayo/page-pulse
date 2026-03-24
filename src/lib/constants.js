@@ -54,6 +54,19 @@ export const DIFF_MODES = {
   BOTH: 'both',
 };
 
+export const NOTIFY_MODES = {
+  INSTANT: 'instant',
+  DIGEST: 'digest',
+};
+
+export const DIGEST_INTERVALS = [
+  { label: '1 hour', ms: 3600000 },
+  { label: '6 hours', ms: 21600000 },
+  { label: '24 hours', ms: 86400000 },
+];
+
+export const DIGEST_ALARM_NAME = 'pagepulse-digest';
+
 // All intervals available to everyone for free launch
 export const INTERVALS = [
   { label: '5 minutes', ms: 300000, proOnly: false },
