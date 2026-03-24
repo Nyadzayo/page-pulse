@@ -32,11 +32,30 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
 
     if (msg.action === 'playSound') {
       try {
-        const audio = new Audio(msg.dataUrl);
-        audio.volume = 0.5;
-        audio.play().then(() => sendResponse({ success: true }))
-          .catch(e => sendResponse({ success: false, error: e.message }));
-        return true; // async response
+        const RATE = 22050;
+        const dur = 0.3;
+        const len = Math.floor(RATE * dur);
+        const samples = new Float32Array(len);
+        for (let i = 0; i < len; i++) {
+          const t = i / RATE;
+          const half = dur / 2;
+          const freq = t < half ? 523.25 : 659.25;
+          const vol = t < half ? 1 - (t / half) * 0.3 : 1 - (t - half) / half;
+          const env = Math.min(1, t * 50) * Math.min(1, (dur - t) * 20) * vol * 0.4;
+          samples[i] = Math.sin(2 * Math.PI * freq * t) * env;
+        }
+        const ctx = new AudioContext();
+        const buf = ctx.createBuffer(1, len, RATE);
+        buf.getChannelData(0).set(samples);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.5;
+        src.connect(gain);
+        gain.connect(ctx.destination);
+        src.start();
+        src.onended = () => { ctx.close(); sendResponse({ success: true }); };
+        return true; // async
       } catch (e) {
         sendResponse({ success: false, error: e.message });
       }

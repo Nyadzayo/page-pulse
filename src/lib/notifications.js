@@ -1,5 +1,4 @@
 import { MAX_NOTIFICATIONS_PER_TICK } from './constants.js';
-import { getChimeDataUrl } from './sound.js';
 
 export function truncateMessage(text, maxLen = 80) {
   if (!text || text.length <= maxLen) return text || '';
@@ -68,9 +67,8 @@ export function updateBadge(count) {
 
 async function playNotificationSound() {
   try {
-    const dataUrl = getChimeDataUrl();
     chrome.runtime.sendMessage(
-      { target: 'offscreen', action: 'playSound', dataUrl },
+      { target: 'offscreen', action: 'playSound' },
       () => {} // fire and forget
     );
   } catch (e) {
