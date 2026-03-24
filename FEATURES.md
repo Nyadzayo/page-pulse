@@ -258,14 +258,163 @@ Alarm tick (1 min)
 
 ## Roadmap
 
-### v1.1 (Post-launch, feedback-driven)
-- Full-page text monitoring
-- Improved selector recovery via text fingerprint
-- Side panel UI option
+### v1.1 — Growth Features (Post-launch, weeks 1-4)
 
-### v2 (Revenue-justified)
-- Stripe/ExtensionPay payment integration (Pro tier: 50 monitors, 90-day history)
-- Backend via Cloudflare Workers: email alerts, JS-rendered page support, cross-device sync
-- Screenshot-based visual diff
-- Webhook integrations
-- Monitor sharing / templates
+#### Shareable Monitor Links
+Let users share their monitor configuration as a link. Recipient clicks → imports the monitor with one click.
+- Generates a shareable URL containing encoded monitor config (selector, URL, keywords, ignore patterns)
+- Import flow: link opens PagePulse dashboard with pre-filled config, user clicks "Add"
+- **Growth impact:** Every shared link = potential new user. This is the core viral loop.
+- **Backend:** Cloudflare Worker KV store for short URLs, or encode config in URL hash (no backend needed)
+
+#### Monitor Templates Gallery
+Pre-built monitor configurations for popular use cases:
+- **Amazon Price Tracker** — selector for price element, ignore patterns for stock count
+- **Hacker News Front Page** — keyword filters, digest mode, ignore timestamps/points
+- **Job Board Watcher** — keyword: job title, 15-min interval
+- **Government Policy Monitor** — selectors for .gov sites, daily digest
+- **Reddit Thread Watcher** — comment count tracking
+- **Product Restock Alert** — "Add to Cart" button text detection
+- **Competitor Website** — full page monitor, weekly digest
+- **Documentation Changelog** — detect version number changes
+- **Growth impact:** Reduces setup time from 2 minutes to 10 seconds. Templates are shareable content.
+
+#### Slack / Discord / Telegram Webhooks
+Send change alerts to team channels via configurable webhook URL per monitor.
+- User pastes webhook URL in monitor settings
+- On change: POST formatted message with monitor label, summary, diff link
+- Supports Slack Block Kit, Discord embeds, Telegram bot API
+- **Growth impact:** Team adoption = organic word-of-mouth in channels
+
+#### "Powered by PagePulse" Branding
+Already implemented in v1.0: every CSV/JSON export and clipboard copy includes "Tracked by PagePulse" footer.
+- **Growth impact:** Every export, paste, and share = brand impression
+
+#### Full-Page Text Monitoring
+Monitor entire page text instead of a specific element.
+- "Monitor whole page" option in element selector
+- Captures `document.body.textContent`
+- Best paired with ignore patterns and keyword filters
+
+#### Improved Selector Recovery
+When CSS selector breaks, use text fingerprint to find the element again automatically.
+- Compare stored fingerprint against all page elements
+- Suggest re-selection if close match found
+- Reduce "broken monitor" rate from ~30% to ~5%
+
+---
+
+### v2 — Revenue & Scale Features (Month 2-6)
+
+#### Payment Integration (Pro Tier)
+- ExtensionPay or Stripe Checkout for $7/month Pro plan
+- Pro: 50 monitors, 90-day history, priority checking
+- Free tier remains generous (10 monitors, 30 days) to maintain growth
+- **Revenue target:** 2% conversion × 10K users = 200 paid = $1,400/month
+
+#### Public Dashboards
+Let users make a monitor's change history publicly viewable at a URL.
+- `pagepulse.app/d/username/hn-tracker`
+- Shows live-updating feed of detected changes
+- Each public dashboard = SEO landing page
+- **Growth impact:** User-generated content that ranks in Google. "HN changes today" or "Amazon PS5 price history" attract organic search traffic.
+
+#### Weekly Email Digest
+Opt-in weekly summary email: "This week: 47 changes across 5 monitors. Top changes: [list]"
+- Backend: Cloudflare Workers + Resend for email delivery
+- Re-engages users who forgot about the extension
+- Configurable: daily, weekly, monthly
+
+#### Visual Screenshot Diff
+Capture screenshots of monitored elements and overlay old/new with red/green highlighting.
+- `chrome.tabs.captureVisibleTab` for screenshots
+- Image diff library (pixelmatch) for comparison
+- Side-by-side and overlay view modes
+- This is Visualping's main selling point at $10+/mo — offering it free is a major competitive advantage
+
+#### AI Change Summary
+Use Claude Haiku or GPT-4o-mini to generate human-readable summaries:
+- "Price dropped from $34.99 to $29.99 (15% off)"
+- "3 new engineering job postings added in San Francisco"
+- "Government policy section 4.2 updated: new compliance deadline March 2027"
+- **Cost:** ~$0.01-0.03 per summary (Claude Haiku)
+- **Revenue:** Premium feature for Pro tier
+
+#### JS-Rendered Page Support
+Server-side rendering via headless browser for single-page apps.
+- Backend: Cloudflare Workers + Puppeteer/Playwright
+- User marks monitor as "needs JS rendering"
+- Fetches page via cloud, returns rendered HTML
+- Solves the #1 technical limitation of the extension
+
+#### Cross-Device Monitor Sync
+Sync monitor configurations (not history) across devices via `chrome.storage.sync`.
+- Monitor configs are small (~500 bytes each)
+- History stays local (too large for sync)
+- Pro feature to justify subscription
+
+#### Multi-Browser Support
+Port to Firefox and Edge with minimal changes.
+- MV3 is cross-browser compatible
+- Manifest differences are minor
+- Firefox users are privacy-conscious — "local only" resonates
+- Edge comes pre-installed on Windows — free distribution
+- **Growth impact:** 2-3x addressable market
+
+#### Import from Competitors
+Import monitor configurations from Distill.io and Visualping JSON exports.
+- Reduces switching friction
+- "Switch to PagePulse in 30 seconds" marketing angle
+- Parse competitor export formats, map to PagePulse config
+
+#### Bulk Monitor Management
+Select multiple monitors and apply actions in bulk.
+- Select all / select by status
+- Bulk pause, resume, delete, change interval
+- Bulk apply keyword filters or ignore patterns
+- Solves "painful monitor management" complaint from ChangeTower users
+
+#### API / CLI Access
+REST API and CLI tool for programmatic monitor management.
+- Create, read, update, delete monitors via API
+- Trigger checks programmatically
+- Pipe change data to other tools
+- Developer audience expects this
+
+#### Mobile Companion
+Progressive Web App (PWA) that shows monitor status and change history.
+- Read-only view of monitors and diffs
+- Push notifications via web push
+- No app store submission needed
+- Pairs with weekly email digest for mobile users
+
+---
+
+### v3 — Platform Features (Month 6+)
+
+#### Team Workspaces
+Shared monitor collections for teams.
+- Invite team members via email
+- Shared monitors with role-based access
+- Team-wide digest notifications
+- Enterprise pricing tier
+
+#### Monitor Marketplace
+Community-contributed monitor templates with ratings and reviews.
+- Users publish their best monitor configs
+- Others browse and install with one click
+- Categories: E-commerce, Jobs, Government, Tech, Real Estate
+- Top contributors get badges
+
+#### Zapier / Make Integration
+Connect PagePulse to 5,000+ apps via automation platforms.
+- Trigger Zaps on change detected
+- Actions: send email, update spreadsheet, post to Slack, create task
+- Enterprise teams use this for compliance workflows
+
+#### White-Label Solution
+Offer PagePulse as a white-label product for agencies and enterprises.
+- Custom branding
+- Custom domain for public dashboards
+- SLA and dedicated support
+- Volume pricing
