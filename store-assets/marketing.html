@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PagePulse — Marketing Assets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════
+   PAGEPULSE MARKETING ASSETS
+   Direction: "Signal Intelligence" — editorial precision
+   ══════════════════════════════════════════════════════════ */
+
+:root {
+  --black: #04060B;
+  --ink: #0A0E1A;
+  --surface: #111827;
+  --raised: #1A1F2E;
+  --elevated: #232838;
+  --border: rgba(255,255,255,0.06);
+  --emerald: #10B981;
+  --emerald-bright: #34D399;
+  --emerald-dim: rgba(16,185,129,0.1);
+  --emerald-glow: rgba(16,185,129,0.3);
+  --red: #EF4444;
+  --amber: #F59E0B;
+  --white: #F3F4F6;
+  --gray: #9CA3AF;
+  --dim: #6B7280;
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+::selection { background: var(--emerald-dim); color: var(--emerald-bright); }
+
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Page structure ── */
+.page { max-width: 1400px; margin: 0 auto; padding: 60px 40px; }
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--emerald);
+  margin-bottom: 8px;
+}
+.section-note {
+  font-size: 13px;
+  color: var(--dim);
+  margin-bottom: 32px;
+  max-width: 500px;
+}
+.asset-group { margin-bottom: 80px; }
+
+/* ══════════════════════════════════════════════════════════
+   1. APP ICONS — Multiple sizes, production quality
+   ══════════════════════════════════════════════════════════ */
+.icons-row {
+  display: flex;
+  align-items: end;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.icon-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.icon-size {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--dim);
+}
+
+.app-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #1EE0A0 0%, #10B981 30%, #0A8F66 70%, #06704F 100%);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.08),
+    0 4px 24px rgba(16,185,129,0.25),
+    0 1px 3px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.15);
+  overflow: hidden;
+}
+.app-icon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.12) 0%, transparent 50%);
+  pointer-events: none;
+}
+.app-icon svg {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+
+.icon-16 { width:16px; height:16px; border-radius:3px; }
+.icon-32 { width:32px; height:32px; border-radius:6px; }
+.icon-48 { width:48px; height:48px; border-radius:10px; }
+.icon-128 { width:128px; height:128px; border-radius:28px; }
+.icon-256 { width:256px; height:256px; border-radius:56px; }
+.icon-512 { width:512px; height:512px; border-radius:112px; }
+
+/* ══════════════════════════════════════════════════════════
+   2. FEATURE CARDS — Screenshot-ready at 1280x800
+   ══════════════════════════════════════════════════════════ */
+.feature-card {
+  width: 1280px;
+  height: 800px;
+  background: var(--ink);
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 8px 60px rgba(0,0,0,0.6);
+  margin-bottom: 40px;
+}
+
+/* Ambient glow */
+.feature-card::before {
+  content: "";
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: 0;
+}
+.fc-green::before { background: var(--emerald); top: -200px; right: -100px; }
+.fc-blue::before { background: #3B82F6; bottom: -200px; left: -100px; }
+.fc-amber::before { background: var(--amber); top: -100px; left: 50%; }
+.fc-red::before { background: var(--red); bottom: -150px; right: -50px; }
+
+.fc-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  padding: 80px;
+  gap: 80px;
+}
+
+.fc-text { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+.fc-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--emerald);
+  background: var(--emerald-dim);
+  padding: 5px 12px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+
+.fc-title {
+  font-family: var(--font-display);
+  font-size: 56px;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--white);
+  margin-bottom: 20px;
+}
+.fc-title em {
+  color: var(--emerald-bright);
+  font-style: italic;
+}
+
+.fc-desc {
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--gray);
+  max-width: 440px;
+}
+
+.fc-visual {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* ── Mock UI Components ── */
+.mock-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+
+.mock-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mock-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.mock-dot.green { background: var(--emerald); box-shadow: 0 0 6px var(--emerald-glow); }
+.mock-dot.red { background: var(--red); }
+.mock-dot.amber { background: var(--amber); }
+
+.mock-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: -0.01em;
+}
+.mock-sublabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--dim);
+}
+
+.mock-body { padding: 16px 18px; }
+
+.mock-diff {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--gray);
+}
+.mock-diff ins {
+  background: rgba(16,185,129,0.15);
+  color: #6EE7B7;
+  text-decoration: none;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+.mock-diff del {
+  background: rgba(239,68,68,0.12);
+  color: #FCA5A5;
+  text-decoration: line-through;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.mock-summary {
+  padding: 12px 16px;
+  background: var(--emerald-dim);
+  border-radius: 8px;
+  margin: 8px 0;
+  font-size: 13px;
+  color: var(--emerald-bright);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mock-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.mock-item:last-child { border-bottom: none; }
+.mock-item-title { color: var(--white); font-weight: 500; flex: 1; }
+.mock-item-meta { font-family: var(--font-mono); font-size: 10px; color: var(--dim); }
+
+.mock-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.mock-tag.new { background: var(--emerald-dim); color: var(--emerald-bright); }
+.mock-tag.removed { background: rgba(239,68,68,0.12); color: #FCA5A5; }
+.mock-tag.paused { background: rgba(245,158,11,0.12); color: #FCD34D; }
+
+/* Health indicators */
+.mock-health {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+.mock-health-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--raised);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.mock-health-icon {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.mock-health-text {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Keyboard */
+.mock-kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--gray);
+  display: inline-block;
+}
+
+/* Notification */
+.mock-notif {
+  background: #1C1C1E;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 380px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.mock-notif-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(145deg, #1EE0A0, #0A8F66);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mock-notif-body { flex: 1; }
+.mock-notif-app { font-size: 10px; font-weight: 600; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 2px; }
+.mock-notif-title { font-size: 13px; font-weight: 700; color: #F2F2F7; margin-bottom: 2px; }
+.mock-notif-msg { font-size: 12px; color: #AEAEB2; line-height: 1.4; }
+
+/* ── Stacked visuals ── */
+.stack {
+  position: relative;
+  width: 460px;
+  height: 520px;
+}
+.stack > * {
+  position: absolute;
+}
+
+/* ── Selector overlay mock ── */
+.mock-page {
+  width: 420px;
+  background: #F9FAFB;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.1);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+.mock-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #E5E7EB;
+}
+.mock-browser-dot { width: 8px; height: 8px; border-radius: 50%; }
+.mock-browser-dot:nth-child(1) { background: #EF4444; }
+.mock-browser-dot:nth-child(2) { background: #F59E0B; }
+.mock-browser-dot:nth-child(3) { background: #22C55E; }
+.mock-browser-url {
+  flex: 1;
+  margin-left: 6px;
+  padding: 3px 10px;
+  background: white;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #6B7280;
+}
+.mock-page-content {
+  padding: 16px;
+  color: #111827;
+}
+.mock-page-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+}
+.mock-page-text {
+  height: 8px;
+  background: #E5E7EB;
+  border-radius: 2px;
+  margin-bottom: 6px;
+}
+.mock-highlighted {
+  display: inline-block;
+  padding: 4px 8px;
+  outline: 2.5px solid #2563EB;
+  outline-offset: 3px;
+  background: rgba(37,99,235,0.06);
+  border-radius: 4px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #059669;
+}
+
+/* ══════════════════════════════════════════════════════════
+   3. PROMO TILES
+   ══════════════════════════════════════════════════════════ */
+.promo {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  border-radius: 16px;
+  margin-bottom: 40px;
+}
+.promo-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 40%, rgba(16,185,129,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 75% 60%, rgba(16,185,129,0.04) 0%, transparent 50%),
+    var(--ink);
+}
+.promo-icon {
+  position: relative;
+  z-index: 1;
+}
+.promo-text {
+  position: relative;
+  z-index: 1;
+}
+.promo-name {
+  font-family: var(--font-display);
+  font-size: 42px;
+  letter-spacing: -0.03em;
+  margin-bottom: 4px;
+}
+.promo-tag {
+  font-size: 17px;
+  color: var(--gray);
+}
+.promo-tag2 {
+  font-size: 14px;
+  color: var(--dim);
+  margin-top: 4px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   4. SOCIAL CARDS
+   ══════════════════════════════════════════════════════════ */
+.social-card {
+  width: 1200px;
+  height: 630px;
+  background: var(--ink);
+  border-radius: 0;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 60px;
+  margin-bottom: 40px;
+}
+.social-card::before {
+  content: "";
+  position: absolute;
+  width: 800px;
+  height: 800px;
+  border-radius: 50%;
+  background: var(--emerald);
+  filter: blur(200px);
+  opacity: 0.06;
+  top: -300px;
+  right: -200px;
+}
+
+/* Grid noise texture */
+.noise-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   5. BANNER
+   ══════════════════════════════════════════════════════════ */
+.banner {
+  width: 728px;
+  height: 90px;
+  background: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 40px;
+}
+.banner::before {
+  content: "";
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: var(--emerald);
+  filter: blur(80px);
+  opacity: 0.06;
+  right: -40px;
+  top: -60px;
+}
+.banner-text { flex: 1; position: relative; z-index: 1; }
+.banner-title { font-family: var(--font-display); font-size: 22px; letter-spacing: -0.02em; }
+.banner-desc { font-size: 12px; color: var(--gray); margin-top: 2px; }
+.banner-cta {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 20px;
+  background: var(--emerald);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+/* ── Animations ── */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--emerald-glow); }
+  50% { box-shadow: 0 0 20px 4px var(--emerald-glow); }
+}
+.animate-float { animation: float 4s ease-in-out infinite; }
+.animate-pulse { animation: pulse-glow 2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 1: APP ICONS
+     ═══════════════════════════════════════════════ -->
+<div class="asset-group">
+  <div class="section-label">01 — App Icons</div>
+  <div class="section-note">Right-click → "Capture node screenshot" for pixel-perfect PNGs at each size.</div>
+  <div class="icons-row">
+    <div class="icon-wrap">
+      <div class="app-icon icon-16"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg></div>
+      <span class="icon-size">16px</span>
+    </div>
+    <div class="icon-wrap">
+      <div class="app-icon icon-32"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg></div>
+      <span class="icon-size">32px</span>
+    </div>
+    <div class="icon-wrap">
+      <div class="app-icon icon-48"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg></div>
+      <span class="icon-size">48px</span>
+    </div>
+    <div class="icon-wrap">
+      <div class="app-icon icon-128"><svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg></div>
+      <span class="icon-size">128px</span>
+    </div>
+    <div class="icon-wrap">
+      <div class="app-icon icon-256"><svg width="140" height="140" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg></div>
+      <span class="icon-size">256px</span>
+    </div>
+    <div class="icon-wrap">
+      <div class="app-icon icon-512 animate-pulse"><svg width="280" height="280" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg></div>
+      <span class="icon-size">512px</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 2: FEATURE SCREENSHOTS (1280x800)
+     ═══════════════════════════════════════════════ -->
+<div class="asset-group">
+  <div class="section-label">02 — Feature Screenshots</div>
+  <div class="section-note">Each card is exactly 1280x800 — screenshot-ready for Chrome Web Store, Product Hunt, and social media.</div>
+
+  <!-- Feature 1: Smart Summaries -->
+  <div class="feature-card fc-green">
+    <div class="fc-content">
+      <div class="fc-text">
+        <div class="fc-badge">Smart Detection</div>
+        <div class="fc-title">Stop reading<br><em>walls of text</em></div>
+        <div class="fc-desc">PagePulse detects list content and shows you what actually changed — new items, removed items, reordered items — instead of a raw text diff.</div>
+      </div>
+      <div class="fc-visual">
+        <div class="mock-card" style="width:440px;">
+          <div class="mock-header">
+            <div class="mock-dot green"></div>
+            <div>
+              <div class="mock-label">Hacker News Front Page</div>
+              <div class="mock-sublabel">news.ycombinator.com &middot; 5m ago</div>
+            </div>
+          </div>
+          <div class="mock-body">
+            <div class="mock-summary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              3 new items, 2 removed
+            </div>
+            <div class="mock-item">
+              <div class="mock-dot green" style="width:6px;height:6px;"></div>
+              <div class="mock-item-title">Rust Compiler Released for ARM64</div>
+              <div class="mock-tag new">New</div>
+            </div>
+            <div class="mock-item">
+              <div class="mock-dot green" style="width:6px;height:6px;"></div>
+              <div class="mock-item-title">OpenAI Acquires Astral</div>
+              <div class="mock-tag new">New</div>
+            </div>
+            <div class="mock-item">
+              <div class="mock-dot green" style="width:6px;height:6px;"></div>
+              <div class="mock-item-title">Building a RISC-V CPU from Scratch</div>
+              <div class="mock-tag new">New</div>
+            </div>
+            <div class="mock-item" style="opacity:0.5;">
+              <div class="mock-dot red" style="width:6px;height:6px;"></div>
+              <div class="mock-item-title" style="text-decoration:line-through;">4Chan Fined for Safety Breach</div>
+              <div class="mock-tag removed">Gone</div>
+            </div>
+            <div class="mock-item" style="opacity:0.5;">
+              <div class="mock-dot red" style="width:6px;height:6px;"></div>
+              <div class="mock-item-title" style="text-decoration:line-through;">Drugwars for TI Calculators</div>
+              <div class="mock-tag removed">Gone</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature 2: Keyword Filters -->
+  <div class="feature-card fc-blue">
+    <div class="fc-content">
+      <div class="fc-text">
+        <div class="fc-badge">Keyword Filters</div>
+        <div class="fc-title">Only hear about<br>what <em>matters</em></div>
+        <div class="fc-desc">Set keywords per monitor. PagePulse only notifies you when changes match your interests. 140 daily alerts become 5 relevant ones.</div>
+      </div>
+      <div class="fc-visual">
+        <div class="mock-card" style="width:420px;">
+          <div class="mock-header">
+            <div class="mock-label">Monitor Settings</div>
+          </div>
+          <div class="mock-body">
+            <div style="margin-bottom:16px;">
+              <div style="font-size:11px;font-weight:600;color:var(--gray);margin-bottom:6px;">KEYWORDS</div>
+              <div style="padding:10px 14px;background:var(--raised);border:1px solid var(--border);border-radius:6px;font-family:var(--font-mono);font-size:13px;color:var(--emerald-bright);">rust, AI, hiring, remote</div>
+              <div style="font-size:10px;color:var(--dim);margin-top:4px;">Only notify when new items match these words</div>
+            </div>
+            <div style="margin-bottom:16px;">
+              <div style="font-size:11px;font-weight:600;color:var(--gray);margin-bottom:6px;">IGNORE PATTERNS</div>
+              <div style="padding:10px 14px;background:var(--raised);border:1px solid var(--border);border-radius:6px;font-family:var(--font-mono);font-size:11px;color:var(--gray);line-height:1.8;">
+                \d+ minutes? ago<br>
+                \d+ points?<br>
+                \d+ comments?
+              </div>
+              <div style="display:flex;gap:6px;margin-top:8px;">
+                <span style="font-family:var(--font-mono);font-size:9px;padding:3px 8px;background:var(--raised);border:1px solid var(--border);border-radius:4px;color:var(--emerald-bright);">Timestamps</span>
+                <span style="font-family:var(--font-mono);font-size:9px;padding:3px 8px;background:var(--raised);border:1px solid var(--border);border-radius:4px;color:var(--emerald-bright);">Points</span>
+                <span style="font-family:var(--font-mono);font-size:9px;padding:3px 8px;background:var(--raised);border:1px solid var(--border);border-radius:4px;color:var(--emerald-bright);">Comments</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <div style="font-size:11px;font-weight:600;color:var(--gray);">ALERTS</div>
+              <div style="display:flex;gap:4px;">
+                <span style="font-family:var(--font-mono);font-size:11px;padding:5px 12px;background:var(--emerald-dim);color:var(--emerald-bright);border-radius:4px;">Instant</span>
+                <span style="font-family:var(--font-mono);font-size:11px;padding:5px 12px;color:var(--dim);border-radius:4px;">Digest</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature 3: Element Selector -->
+  <div class="feature-card fc-amber">
+    <div class="fc-content">
+      <div class="fc-text">
+        <div class="fc-badge">Point & Click</div>
+        <div class="fc-title">Pick any element.<br><em>10 seconds</em> to start.</div>
+        <div class="fc-desc">Click the icon, hover to highlight, click to monitor. Works on product pages, job boards, news sites, government pages, and documentation.</div>
+      </div>
+      <div class="fc-visual">
+        <div class="mock-page" style="transform:rotate(-2deg);">
+          <div class="mock-browser-bar">
+            <div class="mock-browser-dot"></div>
+            <div class="mock-browser-dot"></div>
+            <div class="mock-browser-dot"></div>
+            <div class="mock-browser-url">amazon.com/dp/B09XYZ</div>
+          </div>
+          <div class="mock-page-content">
+            <div class="mock-page-heading">Wireless Smart Widget Pro</div>
+            <div class="mock-page-text" style="width:85%;"></div>
+            <div class="mock-page-text" style="width:65%;margin-bottom:14px;"></div>
+            <div class="mock-highlighted">$29.99</div>
+            <div style="font-size:11px;color:#9CA3AF;margin-top:8px;">In Stock &middot; Free delivery</div>
+          </div>
+        </div>
+        <!-- Toast -->
+        <div style="position:absolute;bottom:30px;right:0;background:#059669;color:white;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;gap:6px;">
+          <span style="width:16px;height:16px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;">&#10003;</span>
+          Monitor added &middot; checking every 5m
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature 4: Privacy + Health -->
+  <div class="feature-card fc-red">
+    <div class="fc-content">
+      <div class="fc-text">
+        <div class="fc-badge">Privacy First</div>
+        <div class="fc-title">Your data stays<br>on <em>your device</em></div>
+        <div class="fc-desc">No accounts. No servers. No tracking. All data stored locally in Chrome. Host access requested per-site, not in bulk. Always know if monitors are running.</div>
+      </div>
+      <div class="fc-visual">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <!-- Health cards -->
+          <div class="mock-card" style="width:380px;">
+            <div class="mock-body" style="padding:20px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span style="font-size:13px;font-weight:600;">Local only — your data never leaves your device</span>
+              </div>
+              <div class="mock-health">
+                <div class="mock-health-item">
+                  <div class="mock-health-icon" style="background:var(--emerald);"></div>
+                  <div class="mock-health-text" style="color:var(--emerald-bright);">Healthy</div>
+                </div>
+                <div class="mock-health-item">
+                  <div class="mock-health-icon" style="background:var(--amber);"></div>
+                  <div class="mock-health-text" style="color:#FCD34D;">Stale</div>
+                </div>
+                <div class="mock-health-item">
+                  <div class="mock-health-icon" style="background:var(--red);"></div>
+                  <div class="mock-health-text" style="color:#FCA5A5;">Broken</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Pause card -->
+          <div class="mock-card" style="width:380px;">
+            <div class="mock-body" style="padding:14px 20px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;display:flex;align-items:center;gap:8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+              <span style="font-size:12px;font-weight:600;color:#FCD34D;">This monitor is paused — no checks running</span>
+            </div>
+          </div>
+          <!-- Keyboard -->
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <span class="mock-kbd">j</span>
+            <span class="mock-kbd">k</span>
+            <span class="mock-kbd">c</span>
+            <span class="mock-kbd">e</span>
+            <span class="mock-kbd">?</span>
+            <span style="font-size:11px;color:var(--dim);margin-left:8px;display:flex;align-items:center;">Keyboard shortcuts for power users</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature 5: JS Rendered -->
+  <div class="feature-card fc-green">
+    <div class="fc-content">
+      <div class="fc-text">
+        <div class="fc-badge">JS Rendered</div>
+        <div class="fc-title">Works on <em>SPAs</em><br>and login pages</div>
+        <div class="fc-desc">Toggle "JS Rendered" mode and PagePulse opens a hidden browser tab to render dynamic pages. Works with React, Vue, Angular, and even pages behind login.</div>
+      </div>
+      <div class="fc-visual">
+        <div class="mock-card" style="width:420px;">
+          <div class="mock-header">
+            <div class="mock-label">Page Type</div>
+          </div>
+          <div class="mock-body">
+            <div style="display:flex;gap:8px;margin-bottom:20px;">
+              <span style="font-family:var(--font-mono);font-size:12px;padding:8px 20px;border-radius:6px;color:var(--dim);background:var(--raised);">Standard</span>
+              <span style="font-family:var(--font-mono);font-size:12px;padding:8px 20px;border-radius:6px;color:var(--emerald-bright);background:var(--emerald-dim);border:1px solid rgba(16,185,129,0.2);">JS Rendered</span>
+            </div>
+            <div style="font-size:12px;color:var(--gray);line-height:1.6;margin-bottom:16px;">Opens a hidden browser tab, waits for JavaScript to render, extracts content from the live DOM.</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="font-size:10px;padding:4px 10px;background:var(--raised);border:1px solid var(--border);border-radius:4px;color:var(--gray);">React</span>
+              <span style="font-size:10px;padding:4px 10px;background:var(--raised);border:1px solid var(--border);border-radius:4px;color:var(--gray);">Vue</span>
+              <span style="font-size:10px;padding:4px 10px;background:var(--raised);border:1px solid var(--border);border-radius:4px;color:var(--gray);">Angular</span>
+              <span style="font-size:10px;padding:4px 10px;background:var(--raised);border:1px solid var(--border);border-radius:4px;color:var(--gray);">Next.js</span>
+              <span style="font-size:10px;padding:4px 10px;background:var(--raised);border:1px solid var(--border);border-radius:4px;color:var(--gray);">Swagger UI</span>
+              <span style="font-size:10px;padding:4px 10px;background:var(--raised);border:1px solid var(--border);border-radius:4px;color:var(--gray);">Login pages</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 3: PROMO TILES
+     ═══════════════════════════════════════════════ -->
+<div class="asset-group">
+  <div class="section-label">03 — Promotional Tiles</div>
+  <div class="section-note">Small (440x280), Large (920x680), Marquee (1400x560), Social OG (1200x630).</div>
+
+  <!-- Small -->
+  <div class="promo" style="width:440px;height:280px;">
+    <div class="promo-bg"></div>
+    <div class="promo-icon app-icon icon-128" style="width:80px;height:80px;border-radius:18px;">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>
+    </div>
+    <div class="promo-text">
+      <div class="promo-name">PagePulse</div>
+      <div class="promo-tag">Website Change Monitor</div>
+      <div class="promo-tag2">Free &middot; Private &middot; Powerful</div>
+    </div>
+  </div>
+
+  <!-- Large -->
+  <div class="promo" style="width:920px;height:680px;">
+    <div class="promo-bg"></div>
+    <div class="promo-icon app-icon" style="width:160px;height:160px;border-radius:36px;">
+      <svg width="88" height="88" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>
+    </div>
+    <div class="promo-text">
+      <div class="promo-name" style="font-size:52px;">PagePulse</div>
+      <div class="promo-tag" style="font-size:20px;">Website Change Monitor</div>
+      <div class="promo-tag2" style="font-size:16px;margin-top:8px;">Track prices, jobs, and content updates. All data stays on your device.</div>
+    </div>
+  </div>
+
+  <!-- Marquee -->
+  <div class="promo" style="width:1400px;height:560px;">
+    <div class="promo-bg"></div>
+    <div class="promo-icon app-icon" style="width:140px;height:140px;border-radius:32px;">
+      <svg width="76" height="76" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>
+    </div>
+    <div class="promo-text">
+      <div class="promo-name" style="font-size:48px;">PagePulse</div>
+      <div class="promo-tag" style="font-size:19px;">Monitor webpage changes. Get notified with smart diffs.</div>
+      <div class="promo-tag2" style="font-size:15px;margin-top:6px;">Free &middot; Privacy-first &middot; No account needed</div>
+    </div>
+  </div>
+
+  <!-- Social OG -->
+  <div class="social-card">
+    <div class="noise-overlay"></div>
+    <div class="promo-icon app-icon" style="width:120px;height:120px;border-radius:28px;position:relative;z-index:1;">
+      <svg width="66" height="66" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>
+    </div>
+    <div class="promo-text" style="position:relative;z-index:1;">
+      <div class="promo-name" style="font-size:44px;">PagePulse</div>
+      <div class="promo-tag" style="font-size:18px;">Track webpage changes. Smart diffs. Free forever.</div>
+      <div class="promo-tag2" style="font-size:14px;margin-top:6px;">No accounts &middot; No servers &middot; Your data stays on your device</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 4: BANNER AD
+     ═══════════════════════════════════════════════ -->
+<div class="asset-group">
+  <div class="section-label">04 — Banner (728x90)</div>
+  <div class="banner">
+    <div class="app-icon" style="width:48px;height:48px;border-radius:10px;flex-shrink:0;position:relative;z-index:1;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>
+    </div>
+    <div class="banner-text">
+      <div class="banner-title">PagePulse</div>
+      <div class="banner-desc">Monitor any webpage for changes. Smart diffs, keyword filters, zero noise. Free.</div>
+    </div>
+    <button class="banner-cta">Add to Chrome — Free</button>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
