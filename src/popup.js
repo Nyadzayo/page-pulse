@@ -150,8 +150,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Request permission (requires user gesture — this IS a click handler)
         const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
         if (granted) {
-          await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
-          window.close();
+          // After permission dialog, popup context may be stale
+          // Use background to inject — it's always alive
+          chrome.runtime.sendMessage(
+            { action: 'startSelection', tabId: tab.id },
+            () => void chrome.runtime.lastError
+          );
+          setTimeout(() => window.close(), 150);
         }
       } catch {}
     });
