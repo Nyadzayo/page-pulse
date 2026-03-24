@@ -2,47 +2,121 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PagePulse Privacy Policy</title>
   <style>
-    body { max-width: 680px; margin: 40px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333; }
-    h1 { font-size: 24px; }
-    h2 { font-size: 18px; margin-top: 24px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; color: #111; }
+    .subtitle { color: #666; margin-bottom: 32px; font-size: 14px; }
+    h2 { font-size: 20px; font-weight: 600; margin-top: 32px; margin-bottom: 12px; color: #111; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+    h3 { font-size: 16px; font-weight: 600; margin-top: 20px; margin-bottom: 8px; color: #333; }
+    p { margin-bottom: 12px; color: #374151; }
+    ul { margin: 0 0 12px 24px; color: #374151; }
+    li { margin-bottom: 6px; }
+    strong { color: #111; }
+    a { color: #059669; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { padding: 8px 12px; text-align: left; border: 1px solid #e5e7eb; font-size: 14px; }
+    th { background: #f3f4f6; font-weight: 600; color: #111; }
+    td { color: #374151; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; background: #ecfdf5; color: #059669; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; margin-bottom: 24px; }
+    .footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid #e5e7eb; font-size: 13px; color: #9ca3af; text-align: center; }
   </style>
 </head>
 <body>
-  <h1>PagePulse Privacy Policy</h1>
-  <p><em>Last updated: March 2026</em></p>
 
-  <h2>What data does PagePulse collect?</h2>
-  <p>PagePulse stores all data locally on your device using Chrome's built-in storage. No data is sent to any external server. Specifically:</p>
-  <ul>
-    <li><strong>Monitor configurations:</strong> The URLs and element selectors you choose to monitor, stored locally.</li>
-    <li><strong>Text snapshots:</strong> The text content of monitored elements, stored locally for change comparison.</li>
-    <li><strong>Change history:</strong> Records of detected changes (old and new text), stored locally.</li>
-  </ul>
+<h1>PagePulse Privacy Policy</h1>
+<p class="subtitle">Effective date: March 24, 2026 &middot; Last updated: March 24, 2026</p>
 
-  <h2>What data is NOT collected?</h2>
-  <ul>
-    <li>No browsing history</li>
-    <li>No personal information</li>
-    <li>No analytics or tracking</li>
-    <li>No data sent to external servers</li>
-  </ul>
+<div class="badge">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  All your data stays on your device. Nothing is sent to any server.
+</div>
 
-  <h2>Permissions explained</h2>
-  <ul>
-    <li><strong>Host access (optional, per-site):</strong> Requested only when you create a monitor on a specific website. Used solely to fetch the page and check for changes.</li>
-    <li><strong>Alarms:</strong> Schedule periodic change checks.</li>
-    <li><strong>Notifications:</strong> Alert you when a monitored element changes.</li>
-    <li><strong>Storage:</strong> Save your monitors and settings locally.</li>
-    <li><strong>Scripting:</strong> Inject the element selection interface when you create a monitor.</li>
-    <li><strong>Offscreen:</strong> Parse fetched webpage HTML to extract monitored element content.</li>
-  </ul>
+<h2>1. What We Collect</h2>
+<p>PagePulse stores the following data <strong>locally on your device only</strong> using Chrome's built-in storage API (<code>chrome.storage.local</code>):</p>
+<ul>
+  <li><strong>Monitor configurations:</strong> The URLs and element selectors you choose to monitor, along with your preferences (check interval, keywords, ignore patterns).</li>
+  <li><strong>Text snapshots:</strong> The text content of monitored elements, stored locally for change comparison.</li>
+  <li><strong>Change history:</strong> Records of detected changes (old and new text values with timestamps), retained for 30 days and then automatically deleted.</li>
+  <li><strong>User preferences:</strong> Your settings such as theme choice (dark/light), notification sound preference, and diff view mode.</li>
+</ul>
 
-  <h2>Third-party services</h2>
-  <p>If you upgrade to Pro, payment is processed by Stripe via ExtensionPay. PagePulse does not store your payment information. See <a href="https://stripe.com/privacy">Stripe's privacy policy</a>.</p>
+<h2>2. What We Do NOT Collect</h2>
+<p>PagePulse does <strong>not</strong> collect, transmit, or store:</p>
+<ul>
+  <li>Personal information (name, email, address, phone number)</li>
+  <li>Browsing history or browsing activity</li>
+  <li>Cookies or authentication tokens</li>
+  <li>Analytics, telemetry, or usage tracking data</li>
+  <li>Financial or payment information</li>
+  <li>Location data</li>
+  <li>Any data to external servers, APIs, or cloud services</li>
+</ul>
+<p><strong>There is no server component.</strong> PagePulse operates entirely within your browser. No data ever leaves your device.</p>
 
-  <h2>Contact</h2>
-  <p>Questions? Open an issue on our GitHub repository.</p>
+<h2>3. Permissions Explained</h2>
+<p>PagePulse requests the following Chrome permissions, each for a specific and necessary purpose:</p>
+<table>
+  <tr><th>Permission</th><th>Why We Need It</th></tr>
+  <tr><td><strong>alarms</strong></td><td>Schedule periodic webpage checks at the intervals you configure (5 minutes to 24 hours).</td></tr>
+  <tr><td><strong>storage</strong></td><td>Store your monitor configurations, change history, and settings locally on your device.</td></tr>
+  <tr><td><strong>notifications</strong></td><td>Send you Chrome desktop notifications when a monitored element changes.</td></tr>
+  <tr><td><strong>activeTab</strong></td><td>Access the current tab to let you select an element to monitor. Only activates when you click the PagePulse icon.</td></tr>
+  <tr><td><strong>scripting</strong></td><td>Inject the element selection interface into the current page when you create a new monitor.</td></tr>
+  <tr><td><strong>offscreen</strong></td><td>Parse fetched webpage HTML to extract monitored element content. Required because Chrome service workers do not have DOM access.</td></tr>
+  <tr><td><strong>Host access (optional, per-site)</strong></td><td>Fetch the specific webpages you choose to monitor. This permission is requested per domain only when you create a monitor, never in bulk. You can revoke access at any time.</td></tr>
+</table>
+<p>PagePulse follows the principle of <strong>least privilege</strong>. We do not request broad host permissions at install time. Host access is optional and granted per-site at your explicit request.</p>
+
+<h2>4. How Your Data Is Stored</h2>
+<ul>
+  <li><strong>Location:</strong> All data is stored in <code>chrome.storage.local</code>, which resides on your device only.</li>
+  <li><strong>Encryption:</strong> Data is protected by Chrome's built-in storage security and your operating system's user-level access controls.</li>
+  <li><strong>Retention:</strong> Change history is automatically pruned after 30 days. Monitor configurations persist until you delete them. All data is removed when you uninstall the extension.</li>
+  <li><strong>No cloud sync:</strong> Monitor data is not synced across devices.</li>
+</ul>
+
+<h2>5. Third-Party Services</h2>
+<p>The current version of PagePulse does <strong>not</strong> use any third-party services, APIs, SDKs, or analytics platforms.</p>
+<p>When PagePulse fetches a webpage you've chosen to monitor, it makes a standard HTTP request directly from your browser to that website. This is the same as if you visited the page yourself.</p>
+
+<h2>6. Data Sharing</h2>
+<p>PagePulse does <strong>not</strong> share, sell, rent, or transfer your data to any third party for any reason. There is no data to share because nothing is collected by us.</p>
+
+<h2>7. Children's Privacy</h2>
+<p>PagePulse is not directed at children under the age of 13. We do not knowingly collect personal information from children. Since no personal information is collected from any user, this policy applies equally to all ages.</p>
+
+<h2>8. Your Rights (GDPR / CCPA)</h2>
+<h3>For EU/EEA residents (GDPR):</h3>
+<p>Since all data is stored locally on your device and we have no access to it, you have full control over your data at all times. You can view, modify, export, or delete all your data directly within the extension's dashboard. Uninstalling the extension removes all data.</p>
+<h3>For California residents (CCPA):</h3>
+<p>We do not sell personal information. We do not collect personal information. You have the right to know what data is collected (none by us), request deletion (uninstall the extension), and opt out of sale (nothing is sold).</p>
+
+<h2>9. Chrome Web Store Compliance</h2>
+<p>PagePulse complies with the <a href="https://developer.chrome.com/docs/webstore/program-policies/">Chrome Web Store Developer Program Policies</a>, including:</p>
+<ul>
+  <li><strong>Single purpose:</strong> PagePulse has one purpose — monitoring webpage elements for text changes.</li>
+  <li><strong>Minimal permissions:</strong> Only permissions necessary for core functionality are requested.</li>
+  <li><strong>No remote code:</strong> All code is bundled locally within the extension. No code is loaded from external sources.</li>
+  <li><strong>Accurate description:</strong> The Chrome Web Store listing accurately describes what the extension does and its limitations.</li>
+</ul>
+
+<h2>10. Changes to This Policy</h2>
+<p>We may update this privacy policy to reflect changes in the extension's functionality. Changes will be posted on this page with an updated effective date.</p>
+
+<h2>11. Contact</h2>
+<p>If you have questions about this privacy policy or PagePulse:</p>
+<ul>
+  <li><strong>Developer:</strong> Kelvin Nyadzayo</li>
+  <li><strong>Email:</strong> <a href="mailto:kelvin.nyadzayo16@gmail.com">kelvin.nyadzayo16@gmail.com</a></li>
+  <li><strong>GitHub:</strong> <a href="https://github.com/Nyadzayo/page-pulse">github.com/Nyadzayo/page-pulse</a></li>
+</ul>
+
+<div class="footer">
+  PagePulse &mdash; free website change monitor &middot; All data stays on your device
+</div>
+
 </body>
 </html>
