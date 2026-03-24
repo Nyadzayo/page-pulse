@@ -118,5 +118,33 @@ describe('scheduler', () => {
       expect(updates.consecutiveErrors).toBe(0);
       expect(updates.firstErrorAt).toBeNull();
     });
+
+    it('sets changed:false but updates baseline when keywords do not match', () => {
+      const monitor = { id: 'm1', baseline: 'Price: $29', status: STATUS.OK, consecutiveErrors: 0, firstErrorAt: null, changeCount: 0, keywords: 'rust' };
+      const result = { monitorId: 'm1', text: 'Price: $24', matchedBy: 'selector' };
+      const now = Date.now();
+      const updates = processCheckResults(monitor, result, now);
+      expect(updates.changed).toBe(false);
+      expect(updates.baseline).toBe('Price: $24');
+      expect(updates.historyEntry).toBeUndefined();
+    });
+
+    it('sets changed:true when keywords match the added text', () => {
+      const monitor = { id: 'm1', baseline: 'old text', status: STATUS.OK, consecutiveErrors: 0, firstErrorAt: null, changeCount: 0, keywords: 'rust' };
+      const result = { monitorId: 'm1', text: 'old text with rust news', matchedBy: 'selector' };
+      const now = Date.now();
+      const updates = processCheckResults(monitor, result, now);
+      expect(updates.changed).toBe(true);
+      expect(updates.baseline).toBe('old text with rust news');
+      expect(updates.historyEntry).toBeDefined();
+    });
+
+    it('sets changed:true when no keywords are set (matches all)', () => {
+      const monitor = { id: 'm1', baseline: 'old text', status: STATUS.OK, consecutiveErrors: 0, firstErrorAt: null, changeCount: 0 };
+      const result = { monitorId: 'm1', text: 'new text', matchedBy: 'selector' };
+      const now = Date.now();
+      const updates = processCheckResults(monitor, result, now);
+      expect(updates.changed).toBe(true);
+    });
   });
 });

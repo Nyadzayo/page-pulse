@@ -1,5 +1,5 @@
 import { STATUS, BROKEN_THRESHOLD, BROKEN_WINDOW_MS, MAX_URLS_PER_TICK } from './constants.js';
-import { hasMeaningfulChange } from './differ.js';
+import { hasMeaningfulChange, matchesKeyword } from './differ.js';
 
 export function filterDueMonitors(monitors, now) {
   return Object.values(monitors).filter((m) => {
@@ -41,6 +41,12 @@ export function processCheckResults(monitor, result, now) {
   const base = { lastChecked: now, consecutiveErrors: 0, firstErrorAt: null, status: STATUS.OK };
 
   if (hasMeaningfulChange(monitor.baseline, result.text)) {
+    // Check keyword filter: if keywords are set and none match the added text,
+    // still update baseline (track latest state) but suppress notification/history
+    if (monitor.keywords && monitor.keywords.trim() &&
+        !matchesKeyword(monitor.baseline, result.text, monitor.keywords)) {
+      return { ...base, changed: false, baseline: result.text };
+    }
     return {
       ...base, changed: true, baseline: result.text,
       changeCount: monitor.changeCount + 1, lastChanged: now,

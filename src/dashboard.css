@@ -680,6 +680,110 @@ html, body {
   line-height: 1;
 }
 
+/* ─── Monitor Settings ──────────────────────────────────────────────────────── */
+.dm-monitor-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.dm-setting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md, 7px);
+}
+.dm-setting-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  min-width: 80px;
+}
+.dm-setting-input {
+  flex: 1;
+  padding: 6px 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+}
+.dm-setting-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.dm-setting-input::placeholder {
+  color: var(--text-tertiary);
+}
+.dm-setting-hint {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* ─── Summary Diff ──────────────────────────────────────────────────────────── */
+.dm-summary {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.65;
+  padding: 10px 14px;
+  color: var(--text-secondary);
+}
+.dm-summary-text {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+.dm-summary-items {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0 0;
+}
+.dm-summary-items li {
+  padding: 2px 0;
+}
+.dm-summary-items li.added {
+  color: var(--diff-add-text);
+}
+.dm-summary-items li.added::before {
+  content: '+ ';
+}
+.dm-summary-items li.removed {
+  color: var(--diff-del-text);
+  text-decoration: line-through;
+}
+.dm-summary-items li.removed::before {
+  content: '- ';
+}
+.dm-detail-toggle {
+  display: inline-block;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent-text);
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 2px 0;
+}
+.dm-detail-toggle:hover {
+  text-decoration: underline;
+}
+.dm-detail-collapsible {
+  display: none;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 8px;
+  padding-top: 8px;
+}
+.dm-detail-collapsible.open {
+  display: block;
+}
+
 /* ─── Section Label Divider ──────────────────────────────────────────────────── */
 .dm-section-label {
   display: flex;

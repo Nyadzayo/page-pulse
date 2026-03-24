@@ -1,6 +1,6 @@
 import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor, updateSettings } from './lib/storage.js';
-import { computeDiff } from './lib/differ.js';
-import { INTERVALS, TIER_LIMITS } from './lib/constants.js';
+import { computeDiff, generateSummary, matchesKeyword } from './lib/differ.js';
+import { INTERVALS, TIER_LIMITS, DIFF_MODES } from './lib/constants.js';
 import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
 import { playChime } from './lib/sound.js';
 
@@ -112,6 +112,15 @@ async function selectMonitor(id) {
     return `<button class="dm-interval-opt ${isActive ? 'active' : ''}" data-ms="${i.ms}">${labelShort}</button>`;
   }).join('');
 
+  // Keywords
+  document.getElementById('detail-keywords').value = monitor.keywords || '';
+
+  // Diff mode buttons
+  const diffMode = monitor.diffMode || DIFF_MODES.SUMMARY;
+  document.querySelectorAll('#diff-mode-options .dm-interval-opt').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === diffMode);
+  });
+
   // Baseline
   document.getElementById('detail-baseline').textContent = monitor.baseline || '(empty)';
 
@@ -122,26 +131,7 @@ async function selectMonitor(id) {
     historyList.innerHTML = '<p style="color:var(--text-tertiary);font-size:12px;">No changes detected yet.</p>';
   } else {
     historyList.innerHTML = history.sort((a, b) => b.ts - a.ts).map(entry => {
-      const diffParts = computeDiff(entry.old, entry.new);
-      const diffHtml = diffParts.map(p => {
-        if (p.added) return `<ins>${escapeHtml(p.value)}</ins>`;
-        if (p.removed) return `<del>${escapeHtml(p.value)}</del>`;
-        return escapeHtml(p.value);
-      }).join('');
-      return `
-        <div class="dm-entry">
-          <div class="dm-entry-head">
-            <span class="dm-entry-time">${new Date(entry.ts).toLocaleString()}</span>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <button class="dm-copy-btn" data-old="${escapeHtml(entry.old)}" data-new="${escapeHtml(entry.new)}" title="Copy to clipboard">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-              </button>
-              <span class="dm-entry-tag">Changed</span>
-            </div>
-          </div>
-          <div class="dm-diff">${diffHtml}</div>
-        </div>
-      `;
+      return renderHistoryEntry(entry, diffMode);
     }).join('');
   }
 
@@ -149,6 +139,63 @@ async function selectMonitor(id) {
   document.querySelectorAll('.ds-item').forEach(el => {
     el.classList.toggle('active', el.dataset.id === id);
   });
+}
+
+function renderSummaryHtml(entry) {
+  const summary = generateSummary(entry.old, entry.new);
+  let html = `<div class="dm-summary"><div class="dm-summary-text">${escapeHtml(summary.text)}</div>`;
+  if (summary.kind === 'list') {
+    for (const part of summary.parts) {
+      html += `<ul class="dm-summary-items">`;
+      for (const item of part.items) {
+        html += `<li class="${part.type}">${escapeHtml(item)}</li>`;
+      }
+      html += `</ul>`;
+    }
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderDetailedHtml(entry) {
+  const diffParts = computeDiff(entry.old, entry.new);
+  return `<div class="dm-diff">${diffParts.map(p => {
+    if (p.added) return `<ins>${escapeHtml(p.value)}</ins>`;
+    if (p.removed) return `<del>${escapeHtml(p.value)}</del>`;
+    return escapeHtml(p.value);
+  }).join('')}</div>`;
+}
+
+function renderHistoryEntry(entry, diffMode) {
+  let bodyHtml = '';
+  if (diffMode === DIFF_MODES.SUMMARY) {
+    bodyHtml = renderSummaryHtml(entry);
+  } else if (diffMode === DIFF_MODES.DETAILED) {
+    bodyHtml = renderDetailedHtml(entry);
+  } else {
+    // BOTH: summary at top, expandable detailed diff below
+    const uid = 'detail-' + entry.ts;
+    bodyHtml = renderSummaryHtml(entry);
+    bodyHtml += `<div style="padding:0 14px 10px;">
+      <button class="dm-detail-toggle" data-target="${uid}">Show detailed diff</button>
+      <div id="${uid}" class="dm-detail-collapsible">${renderDetailedHtml(entry)}</div>
+    </div>`;
+  }
+
+  return `
+    <div class="dm-entry">
+      <div class="dm-entry-head">
+        <span class="dm-entry-time">${new Date(entry.ts).toLocaleString()}</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button class="dm-copy-btn" data-old="${escapeHtml(entry.old)}" data-new="${escapeHtml(entry.new)}" title="Copy to clipboard">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+          <span class="dm-entry-tag">Changed</span>
+        </div>
+      </div>
+      ${bodyHtml}
+    </div>
+  `;
 }
 
 function setupEventListeners() {
@@ -291,18 +338,55 @@ function setupEventListeners() {
   });
 
   document.getElementById('history-list').addEventListener('click', async (e) => {
-    const btn = e.target.closest('.dm-copy-btn');
-    if (!btn) return;
-    const old = btn.dataset.old;
-    const nw = btn.dataset.new;
-    const monitors = await getMonitors();
-    const monitor = monitors[currentMonitorId];
-    const text = `PagePulse Change — ${monitor?.label || 'Monitor'}\n${new Date().toLocaleString()}\nOld: ${old.substring(0, 200)}\nNew: ${nw.substring(0, 200)}`;
-    await navigator.clipboard.writeText(text);
-    btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
-    setTimeout(() => {
-      btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
-    }, 2000);
+    // Handle copy button
+    const copyBtn = e.target.closest('.dm-copy-btn');
+    if (copyBtn) {
+      const old = copyBtn.dataset.old;
+      const nw = copyBtn.dataset.new;
+      const monitors = await getMonitors();
+      const monitor = monitors[currentMonitorId];
+      const text = `PagePulse Change — ${monitor?.label || 'Monitor'}\n${new Date().toLocaleString()}\nOld: ${old.substring(0, 200)}\nNew: ${nw.substring(0, 200)}`;
+      await navigator.clipboard.writeText(text);
+      copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+      setTimeout(() => {
+        copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+      }, 2000);
+      return;
+    }
+
+    // Handle detail toggle
+    const toggleBtn = e.target.closest('.dm-detail-toggle');
+    if (toggleBtn) {
+      const targetId = toggleBtn.dataset.target;
+      const collapsible = document.getElementById(targetId);
+      if (collapsible) {
+        const isOpen = collapsible.classList.toggle('open');
+        toggleBtn.textContent = isOpen ? 'Hide detailed diff' : 'Show detailed diff';
+      }
+    }
+  });
+
+  // Keywords input — save on blur and enter
+  const keywordsInput = document.getElementById('detail-keywords');
+  const saveKeywords = async () => {
+    if (!currentMonitorId) return;
+    await updateMonitor(currentMonitorId, { keywords: keywordsInput.value });
+  };
+  keywordsInput.addEventListener('blur', saveKeywords);
+  keywordsInput.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      await saveKeywords();
+    }
+  });
+
+  // Diff mode buttons
+  document.getElementById('diff-mode-options').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.dm-interval-opt');
+    if (!btn || !currentMonitorId) return;
+    const mode = btn.dataset.mode;
+    await updateMonitor(currentMonitorId, { diffMode: mode });
+    await selectMonitor(currentMonitorId);
   });
 }
 

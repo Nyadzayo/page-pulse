@@ -48,6 +48,12 @@ export const DEFAULT_SETTINGS = {
   soundEnabled: true,
 };
 
+export const DIFF_MODES = {
+  SUMMARY: 'summary',
+  DETAILED: 'detailed',
+  BOTH: 'both',
+};
+
 // All intervals available to everyone for free launch
 export const INTERVALS = [
   { label: '5 minutes', ms: 300000, proOnly: false },
