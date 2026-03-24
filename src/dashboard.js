@@ -347,7 +347,11 @@ function setupEventListeners() {
     const history = await getHistory(currentMonitorId);
     const monitors = await getMonitors();
     const monitor = monitors[currentMonitorId];
-    const data = { monitor: { label: monitor.label, url: monitor.url }, history };
+    const data = {
+      monitor: { label: monitor.label, url: monitor.url },
+      history,
+      _meta: { exportedAt: new Date().toISOString(), tool: 'PagePulse — free website change monitor', url: 'https://chromewebstore.google.com/detail/pagepulse' },
+    };
     downloadFile(
       JSON.stringify(data, null, 2),
       `pagepulse-${safeName(monitor.label)}.json`,
@@ -362,7 +366,11 @@ function setupEventListeners() {
     const monitors = await getMonitors();
     const monitor = monitors[currentMonitorId];
 
-    const rows = [['Timestamp', 'Date', 'Old Value', 'New Value', 'Monitor', 'URL']];
+    const rows = [
+      ['# Tracked by PagePulse — free website change monitor'],
+      ['# https://chromewebstore.google.com/detail/pagepulse'],
+      ['Timestamp', 'Date', 'Old Value', 'New Value', 'Monitor', 'URL'],
+    ];
     for (const entry of history.sort((a, b) => b.ts - a.ts)) {
       rows.push([
         entry.ts,
@@ -424,7 +432,7 @@ function setupEventListeners() {
       const nw = copyBtn.dataset.new;
       const monitors = await getMonitors();
       const monitor = monitors[currentMonitorId];
-      const text = `PagePulse Change — ${monitor?.label || 'Monitor'}\n${new Date().toLocaleString()}\nOld: ${old.substring(0, 200)}\nNew: ${nw.substring(0, 200)}`;
+      const text = `PagePulse Change — ${monitor?.label || 'Monitor'}\n${new Date().toLocaleString()}\nOld: ${old.substring(0, 200)}\nNew: ${nw.substring(0, 200)}\n\nTracked by PagePulse — free website change monitor`;
       await navigator.clipboard.writeText(text);
       copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
       setTimeout(() => {
