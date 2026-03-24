@@ -23,27 +23,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── SMART FLOW: Zero monitors → go straight to selection ──
   if (monitorArr.length === 0) {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id && tab.url && !tab.url.startsWith('chrome://')) {
-      // Try to start selection immediately
-      const origin = new URL(tab.url).origin;
-
-      // Check if we already have permission
-      const hasPermission = await chrome.permissions.contains({ origins: [`${origin}/*`] });
-      if (hasPermission) {
-        // Permission granted → skip popup, go straight to selection
-        chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id }, () => void chrome.runtime.lastError);
-        window.close();
-        return;
-      }
-
-      // No permission → request it, then start selection
-      const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
-      if (granted) {
-        chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id }, () => void chrome.runtime.lastError);
-        window.close();
-        return;
-      }
-      // Permission denied → fall through to show the popup normally
+    if (tab?.id && isMonitorablePage(tab.url)) {
+      await startAddMonitor(limits);
+      // If we're still here, permission was denied — fall through to show popup
     }
   }
 
@@ -128,30 +110,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // ── Add Monitor (smart: check existing permission first) ──
-  document.getElementById('btn-add').addEventListener('click', async () => {
-    const activeCount = monitorArr.filter((m) => m.active).length;
-    if (activeCount >= limits.maxMonitors) return;
-
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id || !tab.url || tab.url.startsWith('chrome://')) return;
-
-    const origin = new URL(tab.url).origin;
-
-    // Check if already have permission — skip the prompt
-    const hasPermission = await chrome.permissions.contains({ origins: [`${origin}/*`] });
-    if (hasPermission) {
-      chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id }, () => void chrome.runtime.lastError);
-      window.close();
-      return;
-    }
-
-    // Need permission — request it
-    const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
-    if (!granted) return;
-
-    chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id }, () => void chrome.runtime.lastError);
-    window.close();
+  // ── Add Monitor ──
+  document.getElementById('btn-add').addEventListener('click', () => {
+    startAddMonitor(limits);
   });
 
   // ── Dashboard button ──
@@ -182,4 +143,40 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function isMonitorablePage(url) {
+  if (!url) return false;
+  try {
+    return url.startsWith('http://') || url.startsWith('https://');
+  } catch {
+    return false;
+  }
+}
+
+async function startAddMonitor(limits) {
+  // Check monitor limit
+  const currentMonitors = await getMonitors();
+  const activeCount = Object.values(currentMonitors).filter(m => m.active).length;
+  if (limits && activeCount >= limits.maxMonitors) return;
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id || !isMonitorablePage(tab.url)) return;
+
+  const origin = new URL(tab.url).origin;
+
+  // Check if already have permission — skip the prompt
+  const hasPermission = await chrome.permissions.contains({ origins: [`${origin}/*`] });
+  if (hasPermission) {
+    chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id }, () => void chrome.runtime.lastError);
+    window.close();
+    return;
+  }
+
+  // Need permission — request it
+  const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
+  if (!granted) return;
+
+  chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id }, () => void chrome.runtime.lastError);
+  window.close();
 }

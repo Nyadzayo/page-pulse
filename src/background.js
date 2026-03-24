@@ -238,9 +238,19 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 
 // --- Context Menu Handler ---
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId !== 'pagepulse-monitor' || !tab?.id) return;
-  // Inject the content script to start element selection
+  if (info.menuItemId !== 'pagepulse-monitor' || !tab?.id || !tab.url) return;
   try {
+    const origin = new URL(tab.url).origin;
+    // Check if we have permission — context menu can't show permission prompt,
+    // so if no permission, inject content script which will message back to create monitor
+    // and the popup flow will handle permission next time
+    const has = await chrome.permissions.contains({ origins: [`${origin}/*`] });
+    if (!has) {
+      // Can't request permission from background — open popup instead
+      // The user will need to click "Add Monitor" in popup for first-time domains
+      console.log('[PagePulse] No permission for', origin, '— user needs to use popup for first-time domains');
+      return;
+    }
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ['content.js'],
