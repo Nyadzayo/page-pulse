@@ -347,3 +347,36 @@ function csvEscape(value) {
 function safeName(label) {
   return (label || 'monitor').replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-');
 }
+
+function toggleShortcutsHelp() {
+  let overlay = document.getElementById('shortcuts-overlay');
+  if (overlay) {
+    overlay.remove();
+    return;
+  }
+  overlay = document.createElement('div');
+  overlay.id = 'shortcuts-overlay';
+  overlay.className = 'shortcuts-overlay';
+  overlay.innerHTML = `
+    <div class="shortcuts-modal">
+      <div class="shortcuts-title">Keyboard Shortcuts</div>
+      <div class="shortcuts-grid">
+        <kbd>j</kbd><span>Next monitor</span>
+        <kbd>k</kbd><span>Previous monitor</span>
+        <kbd>c</kbd><span>Check now</span>
+        <kbd>e</kbd><span>Export</span>
+        <kbd>Del</kbd><span>Delete monitor</span>
+        <kbd>?</kbd><span>Toggle this help</span>
+        <kbd>Esc</kbd><span>Close</span>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', (ev) => {
+    if (ev.target === overlay) overlay.remove();
+  });
+  document.body.appendChild(overlay);
+}
+
+function hideShortcutsHelp() {
+  document.getElementById('shortcuts-overlay')?.remove();
+}

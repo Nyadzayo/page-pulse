@@ -19,6 +19,9 @@
       </div>
       <div class="dash-header-right">
         <button id="btn-sound" class="theme-toggle" title="Toggle notification sound"></button>
+        <button id="btn-shortcuts" class="theme-toggle" title="Keyboard shortcuts (?)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </button>
         <button id="btn-theme" class="theme-toggle" title="Toggle theme"></button>
         <span class="dash-version">v1.0</span>
       </div>
@@ -67,6 +70,22 @@
           <div id="interval-bar" class="dm-interval">
             <span class="dm-interval-label">Check every</span>
             <div id="interval-options" class="dm-interval-options"></div>
+          </div>
+
+          <div class="dm-monitor-settings">
+            <div class="dm-setting">
+              <label class="dm-setting-label">Keywords</label>
+              <input id="detail-keywords" type="text" class="dm-setting-input" placeholder="e.g. rust, AI, hiring (empty = all changes)">
+              <span class="dm-setting-hint">Only notify when change contains these words</span>
+            </div>
+            <div class="dm-setting">
+              <label class="dm-setting-label">Diff view</label>
+              <div id="diff-mode-options" class="dm-interval-options">
+                <button class="dm-interval-opt" data-mode="summary">Summary</button>
+                <button class="dm-interval-opt" data-mode="detailed">Detailed</button>
+                <button class="dm-interval-opt" data-mode="both">Both</button>
+              </div>
+            </div>
           </div>
 
           <div class="dm-section-label">Current Value<span class="line"></span></div>
