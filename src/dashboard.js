@@ -155,9 +155,25 @@ function setupEventListeners() {
   document.getElementById('btn-check-now').addEventListener('click', async () => {
     if (!currentMonitorId) return;
     const btn = document.getElementById('btn-check-now');
+    const monitors = await getMonitors();
+    const beforeCount = monitors[currentMonitorId]?.changeCount || 0;
+
     btn.textContent = 'Checking...';
     btn.disabled = true;
     await chrome.runtime.sendMessage({ action: 'checkNow', monitorId: currentMonitorId });
+
+    // Check if change was detected
+    const monitorsAfter = await getMonitors();
+    const afterCount = monitorsAfter[currentMonitorId]?.changeCount || 0;
+
+    if (afterCount > beforeCount) {
+      // Change detected — play sound from dashboard (reliable)
+      const settings = await getSettings();
+      if (settings.soundEnabled !== false) {
+        playChime(0.5);
+      }
+    }
+
     await selectMonitor(currentMonitorId);
     await loadSidebar();
     btn.textContent = 'Check Now';
