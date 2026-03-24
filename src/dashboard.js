@@ -1,6 +1,6 @@
 import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor, updateSettings } from './lib/storage.js';
 import { computeDiff, generateSummary, matchesKeyword } from './lib/differ.js';
-import { INTERVALS, TIER_LIMITS, DIFF_MODES } from './lib/constants.js';
+import { INTERVALS, TIER_LIMITS, DIFF_MODES, NOTIFY_MODES } from './lib/constants.js';
 import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
 import { playChime } from './lib/sound.js';
 
@@ -65,12 +65,18 @@ async function loadSidebar() {
   list.innerHTML = arr.map(m => {
     const dotClass = m.status === 'ok' ? 'ok' : m.status === 'broken' ? 'err' : 'warn';
     const host = new URL(m.url).hostname;
+    const healthText = m.status === 'broken' ? 'Broken' :
+      m.status === 'permission_revoked' ? 'No access' :
+      !m.lastChecked ? 'Pending' :
+      (Date.now() - m.lastChecked > (m.intervalMs || 3600000) * 3) ? 'Stale' :
+      (m.consecutiveErrors > 0) ? 'Flaky' : '';
     return `
       <div class="ds-item ${m.id === currentMonitorId ? 'active' : ''}" data-id="${m.id}">
         <div class="ds-dot ${dotClass}"></div>
         <div class="ds-info">
           <div class="ds-name">${escapeHtml(m.label)}</div>
           <div class="ds-host">${host}</div>
+          ${healthText ? `<div class="ds-health">${healthText}</div>` : ''}
         </div>
         <span class="ds-badge ${m.changeCount > 0 ? 'changes' : 'zero'}">${m.changeCount > 0 ? m.changeCount : '—'}</span>
       </div>
@@ -101,6 +107,31 @@ async function selectMonitor(id) {
   document.getElementById('stat-changes').textContent = monitor.changeCount;
   document.getElementById('stat-since').textContent = new Date(monitor.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
+  // Health indicator
+  const healthEl = document.getElementById('stat-health');
+  const now = Date.now();
+  const expectedInterval = monitor.intervalMs || 3600000;
+  const timeSinceCheck = monitor.lastChecked ? now - monitor.lastChecked : null;
+  const errors = monitor.consecutiveErrors || 0;
+
+  let healthHtml = '';
+
+  if (monitor.status === 'broken') {
+    healthHtml = '<span class="health-bad">Broken</span><div class="health-detail">Selector not found</div>';
+  } else if (monitor.status === 'permission_revoked') {
+    healthHtml = '<span class="health-bad">No Access</span><div class="health-detail">Permission revoked</div>';
+  } else if (!monitor.lastChecked) {
+    healthHtml = '<span class="health-warn">Pending</span><div class="health-detail">Not checked yet</div>';
+  } else if (timeSinceCheck > expectedInterval * 3) {
+    healthHtml = '<span class="health-warn">Stale</span><div class="health-detail">Overdue by ' + timeAgo(monitor.lastChecked) + '</div>';
+  } else if (errors > 0) {
+    healthHtml = '<span class="health-warn">Flaky</span><div class="health-detail">' + errors + ' recent error' + (errors > 1 ? 's' : '') + '</div>';
+  } else {
+    healthHtml = '<span class="health-good">Healthy</span><div class="health-detail">All checks passing</div>';
+  }
+
+  healthEl.innerHTML = healthHtml;
+
   // Intervals — all available for free launch
   const intervalOpts = document.getElementById('interval-options');
   intervalOpts.innerHTML = INTERVALS.map(i => {
@@ -114,6 +145,12 @@ async function selectMonitor(id) {
 
   // Keywords
   document.getElementById('detail-keywords').value = monitor.keywords || '';
+
+  // Notify mode buttons
+  const notifyMode = monitor.notifyMode || NOTIFY_MODES.INSTANT;
+  document.querySelectorAll('#notify-mode-options .dm-interval-opt').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.notify === notifyMode);
+  });
 
   // Diff mode buttons
   const diffMode = monitor.diffMode || DIFF_MODES.SUMMARY;

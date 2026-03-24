@@ -48,6 +48,7 @@
               <a id="detail-url" class="dm-url" href="#" target="_blank"></a>
             </div>
             <div class="dm-actions">
+              <button id="btn-pause" class="dm-btn pause">Pause</button>
               <button id="btn-check-now" class="dm-btn check">Check Now</button>
               <div class="dm-export-wrap">
                 <button id="btn-export" class="dm-btn">Export &#9662;</button>
@@ -65,6 +66,7 @@
             <div class="dm-stat"><div class="dm-stat-label">Last Checked</div><div id="stat-last-checked" class="dm-stat-value"></div></div>
             <div class="dm-stat"><div class="dm-stat-label">Changes</div><div id="stat-changes" class="dm-stat-value"></div></div>
             <div class="dm-stat"><div class="dm-stat-label">Tracking Since</div><div id="stat-since" class="dm-stat-value"></div></div>
+            <div class="dm-stat"><div class="dm-stat-label">Health</div><div id="stat-health" class="dm-stat-value"></div></div>
           </div>
 
           <div id="interval-bar" class="dm-interval">
@@ -77,6 +79,26 @@
               <label class="dm-setting-label">Keywords</label>
               <input id="detail-keywords" type="text" class="dm-setting-input" placeholder="e.g. rust, AI, hiring (empty = all changes)">
               <span class="dm-setting-hint">Only notify when change contains these words</span>
+            </div>
+            <div class="dm-setting" style="align-items:flex-start;">
+              <label class="dm-setting-label" style="padding-top:8px;">Ignore</label>
+              <div style="flex:1;">
+                <textarea id="detail-ignore" class="dm-setting-input" rows="3" placeholder="Regex patterns to ignore (one per line)&#10;e.g. \d+ (minutes?|hours?) ago&#10;\d+ points?" style="resize:vertical;font-size:11px;line-height:1.5;"></textarea>
+                <span class="dm-setting-hint">Changes matching these patterns won't trigger alerts</span>
+                <div class="dm-presets">
+                  <span class="dm-setting-hint">Presets:</span>
+                  <button class="dm-preset-btn" data-pattern="\d+\s*(minutes?|hours?|days?|seconds?)\s*ago">Timestamps</button>
+                  <button class="dm-preset-btn" data-pattern="\d+\s*points?">Points</button>
+                  <button class="dm-preset-btn" data-pattern="\d+\s*comments?">Comments</button>
+                </div>
+              </div>
+            </div>
+            <div class="dm-setting">
+              <label class="dm-setting-label">Alerts</label>
+              <div id="notify-mode-options" class="dm-interval-options">
+                <button class="dm-interval-opt" data-notify="instant">Instant</button>
+                <button class="dm-interval-opt" data-notify="digest">Digest</button>
+              </div>
             </div>
             <div class="dm-setting">
               <label class="dm-setting-label">Diff view</label>
