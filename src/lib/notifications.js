@@ -69,9 +69,9 @@ async function playNotificationSound() {
   try {
     chrome.runtime.sendMessage(
       { target: 'offscreen', action: 'playSound' },
-      () => {} // fire and forget
+      () => void chrome.runtime.lastError // suppress "Receiving end does not exist"
     );
-  } catch (e) {
-    console.error('[PagePulse] Sound playback failed:', e);
+  } catch {
+    // Silently ignore — sound is best-effort
   }
 }

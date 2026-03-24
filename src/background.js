@@ -40,7 +40,10 @@ async function queryOffscreen(html, queries) {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(
       { target: 'offscreen', action: 'parseAndQuery', html, queries },
-      (response) => resolve(response?.results || [])
+      (response) => {
+        void chrome.runtime.lastError; // suppress "Receiving end does not exist"
+        resolve(response?.results || []);
+      }
     );
   });
 }
