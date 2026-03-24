@@ -23,9 +23,23 @@ export function parseAndQuery(html, queries) {
 // Message handler for actual offscreen document context
 if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.target === 'offscreen' && msg.action === 'parseAndQuery') {
+    if (msg.target !== 'offscreen') return;
+
+    if (msg.action === 'parseAndQuery') {
       const results = parseAndQuery(msg.html, msg.queries);
       sendResponse({ results });
+    }
+
+    if (msg.action === 'playSound') {
+      try {
+        const audio = new Audio(msg.dataUrl);
+        audio.volume = 0.5;
+        audio.play().then(() => sendResponse({ success: true }))
+          .catch(e => sendResponse({ success: false, error: e.message }));
+        return true; // async response
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
     }
   });
 }

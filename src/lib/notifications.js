@@ -1,4 +1,5 @@
 import { MAX_NOTIFICATIONS_PER_TICK } from './constants.js';
+import { getChimeDataUrl } from './sound.js';
 
 export function truncateMessage(text, maxLen = 80) {
   if (!text || text.length <= maxLen) return text || '';
@@ -21,7 +22,7 @@ export async function notifyChange(monitor, newValue) {
   }
 }
 
-export async function notifyBatch(changes) {
+export async function notifyBatch(changes, soundEnabled = true) {
   const individual = changes.slice(0, MAX_NOTIFICATIONS_PER_TICK);
   const remaining = changes.length - individual.length;
 
@@ -43,8 +44,13 @@ export async function notifyBatch(changes) {
     }
   }
 
-  // Update badge with total change count
+  // Update badge
   updateBadge(changes.length);
+
+  // Play sound
+  if (soundEnabled) {
+    await playNotificationSound();
+  }
 }
 
 export function updateBadge(count) {
@@ -57,5 +63,17 @@ export function updateBadge(count) {
     }
   } catch (e) {
     console.error('[PagePulse] Badge update failed:', e);
+  }
+}
+
+async function playNotificationSound() {
+  try {
+    const dataUrl = getChimeDataUrl();
+    chrome.runtime.sendMessage(
+      { target: 'offscreen', action: 'playSound', dataUrl },
+      () => {} // fire and forget
+    );
+  } catch (e) {
+    console.error('[PagePulse] Sound playback failed:', e);
   }
 }

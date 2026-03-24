@@ -45,6 +45,7 @@ export const STORAGE_KEYS = {
 export const DEFAULT_SETTINGS = {
   tier: TIERS.FREE,
   notificationsEnabled: true,
+  soundEnabled: true,
 };
 
 // All intervals available to everyone for free launch

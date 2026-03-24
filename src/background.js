@@ -21,8 +21,8 @@ async function ensureOffscreen() {
   if (contexts.length === 0) {
     await chrome.offscreen.createDocument({
       url: 'offscreen.html',
-      reasons: ['DOM_PARSER'],
-      justification: 'Parse fetched HTML to extract monitored element text',
+      reasons: ['DOM_PARSER', 'AUDIO_PLAYBACK'],
+      justification: 'Parse fetched HTML and play notification sounds',
     });
   }
 }
@@ -127,7 +127,7 @@ async function runTick() {
   if (changes.length > 0) {
     console.log(`[PagePulse] ${changes.length} change(s) detected, notificationsEnabled: ${settings.notificationsEnabled}`);
     if (settings.notificationsEnabled) {
-      await notifyBatch(changes);
+      await notifyBatch(changes, settings.soundEnabled !== false);
       console.log(`[PagePulse] Notifications fired`);
     }
   }

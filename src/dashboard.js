@@ -1,7 +1,10 @@
-import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor } from './lib/storage.js';
+import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor, updateSettings } from './lib/storage.js';
 import { computeDiff } from './lib/differ.js';
 import { INTERVALS, TIER_LIMITS } from './lib/constants.js';
 import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
+
+const soundOnIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
+const soundOffIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
 
 let currentMonitorId = null;
 
@@ -13,6 +16,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   themeBtn.addEventListener('click', () => {
     const next = toggleTheme();
     themeBtn.innerHTML = next === 'dark' ? sunIcon : moonIcon;
+  });
+
+  // Sound toggle
+  const settings = await getSettings();
+  const soundBtn = document.getElementById('btn-sound');
+  let soundOn = settings.soundEnabled !== false;
+  soundBtn.innerHTML = soundOn ? soundOnIcon : soundOffIcon;
+  soundBtn.addEventListener('click', async () => {
+    soundOn = !soundOn;
+    await updateSettings({ soundEnabled: soundOn });
+    soundBtn.innerHTML = soundOn ? soundOnIcon : soundOffIcon;
   });
 
   await loadSidebar();
