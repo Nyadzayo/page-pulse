@@ -121,15 +121,19 @@ async function runTick() {
     }
   }
 
-  await closeOffscreen();
-
-  // Fire notifications
+  // Fire notifications (before closing offscreen — sound plays through it)
   if (changes.length > 0) {
     console.log(`[PagePulse] ${changes.length} change(s) detected, notificationsEnabled: ${settings.notificationsEnabled}`);
     if (settings.notificationsEnabled) {
+      // Ensure offscreen is open for sound playback
+      await ensureOffscreen();
       await notifyBatch(changes, settings.soundEnabled !== false);
       console.log(`[PagePulse] Notifications fired`);
+      // Give sound time to play before closing
+      setTimeout(closeOffscreen, 2000);
     }
+  } else {
+    await closeOffscreen();
   }
 }
 
