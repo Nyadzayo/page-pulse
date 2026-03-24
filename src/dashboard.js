@@ -132,7 +132,12 @@ async function selectMonitor(id) {
         <div class="dm-entry">
           <div class="dm-entry-head">
             <span class="dm-entry-time">${new Date(entry.ts).toLocaleString()}</span>
-            <span class="dm-entry-tag">Changed</span>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button class="dm-copy-btn" data-old="${escapeHtml(entry.old)}" data-new="${escapeHtml(entry.new)}" title="Copy to clipboard">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+              <span class="dm-entry-tag">Changed</span>
+            </div>
           </div>
           <div class="dm-diff">${diffHtml}</div>
         </div>
@@ -244,6 +249,60 @@ function setupEventListeners() {
     }
     const csv = rows.map(r => r.join(',')).join('\n');
     downloadFile(csv, `pagepulse-${safeName(monitor.label)}.csv`, 'text/csv');
+  });
+
+  // Shortcuts button
+  document.getElementById('btn-shortcuts')?.addEventListener('click', toggleShortcutsHelp);
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', async (e) => {
+    // Don't fire when typing in input fields
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    const items = document.querySelectorAll('.ds-item');
+    const ids = Array.from(items).map(el => el.dataset.id);
+    const currentIdx = ids.indexOf(currentMonitorId);
+
+    switch(e.key) {
+      case 'j': // Next monitor
+        if (currentIdx < ids.length - 1) selectMonitor(ids[currentIdx + 1]);
+        else if (ids.length > 0 && currentIdx === -1) selectMonitor(ids[0]);
+        break;
+      case 'k': // Previous monitor
+        if (currentIdx > 0) selectMonitor(ids[currentIdx - 1]);
+        break;
+      case 'c': // Check now
+        if (currentMonitorId) document.getElementById('btn-check-now')?.click();
+        break;
+      case 'e': // Export
+        if (currentMonitorId) document.getElementById('btn-export')?.click();
+        break;
+      case 'Backspace': // Delete (with confirm)
+      case 'Delete':
+        if (currentMonitorId) document.getElementById('btn-delete')?.click();
+        break;
+      case '?': // Show shortcuts help
+        toggleShortcutsHelp();
+        break;
+      case 'Escape':
+        hideShortcutsHelp();
+        break;
+    }
+  });
+
+  document.getElementById('history-list').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.dm-copy-btn');
+    if (!btn) return;
+    const old = btn.dataset.old;
+    const nw = btn.dataset.new;
+    const monitors = await getMonitors();
+    const monitor = monitors[currentMonitorId];
+    const text = `PagePulse Change — ${monitor?.label || 'Monitor'}\n${new Date().toLocaleString()}\nOld: ${old.substring(0, 200)}\nNew: ${nw.substring(0, 200)}`;
+    await navigator.clipboard.writeText(text);
+    btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+    setTimeout(() => {
+      btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+    }, 2000);
   });
 }
 
