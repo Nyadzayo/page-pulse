@@ -297,7 +297,7 @@ function setupEventListeners() {
 
     btn.textContent = 'Checking...';
     btn.disabled = true;
-    await chrome.runtime.sendMessage({ action: 'checkNow', monitorId: currentMonitorId });
+    await chrome.runtime.sendMessage({ action: 'checkNow', monitorId: currentMonitorId }).catch(() => {});
 
     // Check if change was detected
     const monitorsAfter = await getMonitors();
@@ -736,7 +736,7 @@ async function handleImport(encodedData) {
     await selectMonitor(monitor.id);
 
     // Trigger first check
-    await chrome.runtime.sendMessage({ action: 'checkNow', monitorId: monitor.id });
+    await chrome.runtime.sendMessage({ action: 'checkNow', monitorId: monitor.id }).catch(() => {});
     await selectMonitor(monitor.id);
     await loadSidebar();
   });

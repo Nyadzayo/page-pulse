@@ -121,6 +121,7 @@
 
     // Permission was already granted in popup before content script injection
     chrome.runtime.sendMessage({ action: 'createMonitor', data }, (response) => {
+      void chrome.runtime.lastError; // suppress if SW inactive
       cleanup();
       if (response?.success) {
         showToast('Monitor added — checking every hour', response.monitor?.id);

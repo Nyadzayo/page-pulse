@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
     if (!granted) return;
 
-    chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id });
+    chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id }, () => void chrome.runtime.lastError);
     window.close();
   });
 
