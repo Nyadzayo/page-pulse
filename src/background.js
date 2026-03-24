@@ -1,26 +1,8 @@
-import { getMonitors, getSettings, updateMonitor, updateSettings, saveMonitor, appendHistory, getMonitor } from './lib/storage.js';
+import { getMonitors, getSettings, updateMonitor, saveMonitor, appendHistory, getMonitor } from './lib/storage.js';
 import { filterDueMonitors, groupByUrl, processCheckResults, limitUrlBatch } from './lib/scheduler.js';
 import { hasOriginAccess, extractOrigin } from './lib/permissions.js';
 import { notifyBatch } from './lib/notifications.js';
 import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS } from './lib/constants.js';
-// ExtPay integration — DISABLED during development.
-// To enable: register at extensionpay.com, replace 'YOUR_EXTPAY_ID', uncomment below.
-// import ExtPay from 'extpay';
-// function initExtPay() {
-//   try {
-//     const extpay = ExtPay('YOUR_EXTPAY_ID');
-//     extpay.startBackground();
-//     extpay.onPaid.addListener(async () => {
-//       await updateSettings({ tier: TIERS.PRO });
-//     });
-//   } catch (e) {
-//     console.warn('PagePulse: ExtPay not configured.', e.message);
-//   }
-// }
-function initExtPay() { /* disabled in dev */ }
-
-// Delay ExtPay init to avoid blocking service worker registration
-setTimeout(initExtPay, 1000);
 
 // --- Alarm Setup ---
 chrome.runtime.onInstalled.addListener(() => {
@@ -185,14 +167,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     handleCheckNow(msg.monitorId).then(sendResponse);
     return true;
   }
-  if (msg.action === 'toggleTier') {
-    handleToggleTier().then(sendResponse);
-    return true;
-  }
-  if (msg.action === 'testNotification') {
-    handleTestNotification().then(sendResponse);
-    return true;
-  }
 });
 
 async function handleCreateMonitor(data) {
@@ -274,21 +248,3 @@ async function handleCheckNow(monitorId) {
   return { success: true };
 }
 
-// --- Dev helpers (remove before production release) ---
-
-async function handleToggleTier() {
-  const settings = await getSettings();
-  const newTier = settings.tier === TIERS.PRO ? TIERS.FREE : TIERS.PRO;
-  await updateSettings({ tier: newTier });
-  return { success: true, tier: newTier };
-}
-
-async function handleTestNotification() {
-  await chrome.notifications.create('test-notification', {
-    type: 'basic',
-    title: 'PagePulse Test',
-    message: 'Notifications are working! This is a test alert.',
-    iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
-  });
-  return { success: true };
-}

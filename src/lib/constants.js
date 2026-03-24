@@ -13,12 +13,13 @@ export const TIERS = {
   PRO: 'pro',
 };
 
+// Free launch: generous limits, no gating
 export const TIER_LIMITS = {
   [TIERS.FREE]: {
-    maxMonitors: 5,
-    minIntervalMs: 3600000,
-    historyRetentionMs: 604800000,
-    maxManualChecksPerDay: 3,
+    maxMonitors: 10,
+    minIntervalMs: 300000,          // 5 minutes
+    historyRetentionMs: 2592000000, // 30 days
+    maxManualChecksPerDay: Infinity,
   },
   [TIERS.PRO]: {
     maxMonitors: 50,
@@ -46,10 +47,11 @@ export const DEFAULT_SETTINGS = {
   notificationsEnabled: true,
 };
 
+// All intervals available to everyone for free launch
 export const INTERVALS = [
-  { label: '5 minutes', ms: 300000, proOnly: true },
-  { label: '15 minutes', ms: 900000, proOnly: true },
-  { label: '30 minutes', ms: 1800000, proOnly: true },
+  { label: '5 minutes', ms: 300000, proOnly: false },
+  { label: '15 minutes', ms: 900000, proOnly: false },
+  { label: '30 minutes', ms: 1800000, proOnly: false },
   { label: '1 hour', ms: 3600000, proOnly: false },
   { label: '6 hours', ms: 21600000, proOnly: false },
   { label: '24 hours', ms: 86400000, proOnly: false },

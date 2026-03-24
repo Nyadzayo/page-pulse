@@ -1,6 +1,6 @@
 import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor } from './lib/storage.js';
 import { computeDiff } from './lib/differ.js';
-import { INTERVALS, TIERS, TIER_LIMITS } from './lib/constants.js';
+import { INTERVALS, TIER_LIMITS } from './lib/constants.js';
 
 let currentMonitorId = null;
 
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const targetId = params.get('monitor');
   if (targetId) selectMonitor(targetId);
 
-  // Auto-refresh sidebar and current monitor every 30 seconds
+  // Auto-refresh every 30 seconds
   setInterval(async () => {
     await loadSidebar();
     if (currentMonitorId) await selectMonitor(currentMonitorId);
@@ -22,10 +22,6 @@ async function loadSidebar() {
   const monitors = await getMonitors();
   const settings = await getSettings();
   const limits = TIER_LIMITS[settings.tier];
-  const badge = document.getElementById('tier-badge');
-  badge.textContent = settings.tier === TIERS.PRO ? 'PRO' : 'FREE';
-  if (settings.tier === TIERS.PRO) badge.classList.add('pro');
-  else badge.classList.remove('pro');
 
   const arr = Object.values(monitors).sort((a, b) => b.createdAt - a.createdAt);
   const activeCount = arr.filter(m => m.active).length;
@@ -59,9 +55,6 @@ async function selectMonitor(id) {
   const monitor = monitors[id];
   if (!monitor) return;
 
-  const settings = await getSettings();
-  const tier = settings.tier;
-
   document.getElementById('no-selection').style.display = 'none';
   document.getElementById('monitor-detail').style.display = 'block';
 
@@ -79,16 +72,15 @@ async function selectMonitor(id) {
   document.getElementById('stat-changes').textContent = monitor.changeCount;
   document.getElementById('stat-since').textContent = new Date(monitor.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-  // Intervals
+  // Intervals — all available for free launch
   const intervalOpts = document.getElementById('interval-options');
   intervalOpts.innerHTML = INTERVALS.map(i => {
     const isActive = i.ms === monitor.intervalMs;
-    const isPro = i.proOnly && tier !== TIERS.PRO;
     const labelShort = i.label
       .replace(' minutes', 'm')
       .replace(' hour', 'h')
       .replace(' hours', 'h');
-    return `<button class="dm-interval-opt ${isActive ? 'active' : ''} ${isPro ? 'pro' : ''}" data-ms="${i.ms}" ${isPro ? 'disabled' : ''}>${labelShort}</button>`;
+    return `<button class="dm-interval-opt ${isActive ? 'active' : ''}" data-ms="${i.ms}">${labelShort}</button>`;
   }).join('');
 
   // Baseline
@@ -136,16 +128,11 @@ function setupEventListeners() {
     const btn = document.getElementById('btn-check-now');
     btn.textContent = 'Checking...';
     btn.disabled = true;
-    // checkNow awaits the full runTick() before responding
-    const result = await chrome.runtime.sendMessage({ action: 'checkNow', monitorId: currentMonitorId });
-    // Refresh UI after check completes
+    await chrome.runtime.sendMessage({ action: 'checkNow', monitorId: currentMonitorId });
     await selectMonitor(currentMonitorId);
     await loadSidebar();
     btn.textContent = 'Check Now';
     btn.disabled = false;
-    if (result?.reason === 'rate_limited') {
-      alert('Daily check limit reached on Free tier. Upgrade to Pro for unlimited checks.');
-    }
   });
 
   document.getElementById('btn-delete').addEventListener('click', async () => {
@@ -168,11 +155,6 @@ function setupEventListeners() {
 
   document.getElementById('btn-export').addEventListener('click', async () => {
     if (!currentMonitorId) return;
-    const settings = await getSettings();
-    if (settings.tier !== TIERS.PRO) {
-      alert('Export is a Pro feature. Upgrade to export your change history.');
-      return;
-    }
     const history = await getHistory(currentMonitorId);
     const monitors = await getMonitors();
     const monitor = monitors[currentMonitorId];
@@ -184,40 +166,6 @@ function setupEventListeners() {
     a.download = `pagepulse-${monitor.label.replace(/\s+/g, '-')}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  });
-
-  document.getElementById('btn-upgrade').addEventListener('click', async () => {
-    // ExtPay DISABLED in dev. To enable: register at extensionpay.com, uncomment below.
-    // const { default: ExtPay } = await import('extpay');
-    // const extpay = ExtPay('YOUR_EXTPAY_ID');
-    // extpay.openPaymentPage();
-    alert('Payment not configured yet. Use DEV: Toggle Tier to test Pro features.');
-  });
-
-  // --- Dev helpers (remove before production) ---
-  document.getElementById('btn-toggle-tier').addEventListener('click', async () => {
-    const response = await chrome.runtime.sendMessage({ action: 'toggleTier' });
-    if (response?.success) {
-      // Reload the entire dashboard to reflect new tier
-      window.location.reload();
-    }
-  });
-
-  document.getElementById('btn-test-notif').addEventListener('click', async () => {
-    // Fire notification directly from dashboard (extension page has full API access)
-    try {
-      await chrome.notifications.create(`test-${Date.now()}`, {
-        type: 'basic',
-        title: 'PagePulse Test',
-        message: 'Notifications are working! This is a test alert.',
-        iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
-        priority: 2,
-      });
-      chrome.action.setBadgeText({ text: '!' });
-      chrome.action.setBadgeBackgroundColor({ color: '#10B981' });
-    } catch (e) {
-      alert('Notification failed: ' + e.message + '\n\nCheck macOS Settings > Notifications > Google Chrome is enabled.');
-    }
   });
 }
 

@@ -787,3 +787,5 @@ html, body {
     align-items: stretch;
   }
 }
+
+.dash-version { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); }

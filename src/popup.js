@@ -1,5 +1,5 @@
 import { getMonitors, getSettings, updateMonitor } from './lib/storage.js';
-import { TIER_LIMITS, TIERS } from './lib/constants.js';
+import { TIER_LIMITS } from './lib/constants.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Clear badge when popup opens
@@ -7,13 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const monitors = await getMonitors();
   const settings = await getSettings();
-  const tier = settings.tier;
-  const limits = TIER_LIMITS[tier];
-
-  // Tier badge
-  const badge = document.getElementById('tier-badge');
-  badge.textContent = tier === TIERS.PRO ? 'PRO' : 'FREE';
-  if (tier === TIERS.PRO) badge.classList.add('pro');
+  const limits = TIER_LIMITS[settings.tier];
 
   // Monitor list
   const listEl = document.getElementById('monitor-list');

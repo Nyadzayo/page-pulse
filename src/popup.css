@@ -440,3 +440,5 @@ body {
   transition: width 0.3s ease;
   box-shadow: 0 0 6px var(--accent-glow);
 }
+
+.popup-version { font-family: var(--font-mono); font-size: 10px; color: var(--text-tertiary); }

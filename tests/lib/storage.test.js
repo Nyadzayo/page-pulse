@@ -65,8 +65,8 @@ describe('storage', () => {
 
     it('prunes entries older than tier retention', async () => {
       const now = Date.now();
-      const eightDaysAgo = now - (8 * 24 * 60 * 60 * 1000);
-      await appendHistory('m1', { ts: eightDaysAgo, old: 'old', new: 'stale' }, TIERS.FREE);
+      const thirtyOneDaysAgo = now - (31 * 24 * 60 * 60 * 1000);
+      await appendHistory('m1', { ts: thirtyOneDaysAgo, old: 'old', new: 'stale' }, TIERS.FREE);
       await appendHistory('m1', { ts: now, old: 'stale', new: 'fresh' }, TIERS.FREE);
       const history = await getHistory('m1');
       expect(history).toHaveLength(1);
