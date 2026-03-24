@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PagePulse — Instagram Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root {
+  --bg: #06080F;
+  --surface: #111827;
+  --raised: #1A1F2E;
+  --elevated: #232838;
+  --border: rgba(255,255,255,0.06);
+  --borderD: rgba(255,255,255,0.08);
+  --emerald: #10B981;
+  --emeraldBright: #34D399;
+  --emeraldDim: rgba(16,185,129,0.12);
+  --emeraldGlow: rgba(16,185,129,0.25);
+  --red: #EF4444;
+  --amber: #F59E0B;
+  --white: #F3F4F6;
+  --gray: #9CA3AF;
+  --dim: #6B7280;
+  --font: 'Manrope', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; font-family:var(--font); color:var(--white); padding:40px; -webkit-font-smoothing:antialiased; }
+h2 { font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--emerald); margin-bottom:8px; }
+.note { font-size:13px; color:var(--dim); margin-bottom:24px; }
+.slides { display:flex; gap:24px; flex-wrap:wrap; margin-bottom:40px; }
+
+/* Each slide: 1080x1080 */
+.slide {
+  width: 1080px;
+  height: 1080px;
+  border-radius: 0;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* ═══ Shared elements ═══ */
+.slide-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+}
+.slide-glow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: var(--emerald);
+  filter: blur(180px);
+  opacity: 0.05;
+  pointer-events: none;
+}
+.slide-number {
+  position: absolute;
+  top: 40px;
+  right: 44px;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dim);
+  letter-spacing: 0.05em;
+}
+.slide-dots {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+}
+.slide-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.15);
+}
+.slide-dot.active {
+  background: var(--emerald);
+  width: 24px;
+}
+.swipe-hint {
+  position: absolute;
+  bottom: 70px;
+  right: 44px;
+  font-size: 13px;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.app-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #1EE0A0 0%, #10B981 40%, #0A8F66 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 24px var(--emeraldGlow), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+/* ═══ SLIDE 1: Hook ═══ */
+.s1-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px;
+  text-align: center;
+}
+.s1-headline {
+  font-size: 52px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin-top: 32px;
+  margin-bottom: 16px;
+}
+.s1-headline em { color: var(--emeraldBright); font-style: normal; }
+.s1-sub {
+  font-size: 20px;
+  color: var(--gray);
+  max-width: 600px;
+  line-height: 1.5;
+}
+.s1-badge {
+  margin-top: 32px;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--emeraldBright);
+  background: var(--emeraldDim);
+  padding: 8px 20px;
+  border-radius: 8px;
+  letter-spacing: 0.02em;
+}
+
+/* ═══ SLIDE 2: Selector ═══ */
+.s2-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 60px;
+}
+.s2-title {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 8px;
+}
+.s2-title em { color: var(--emeraldBright); font-style: normal; }
+.s2-sub { font-size: 16px; color: var(--gray); margin-bottom: 32px; }
+
+.s2-browser {
+  flex: 1;
+  background: #F9FAFB;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  position: relative;
+}
+.s2-bar {
+  height: 36px;
+  background: #E5E7EB;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 6px;
+}
+.s2-dot { width: 10px; height: 10px; border-radius: 5px; }
+.s2-dot:nth-child(1) { background: #EF4444; }
+.s2-dot:nth-child(2) { background: #F59E0B; }
+.s2-dot:nth-child(3) { background: #22C55E; }
+.s2-url {
+  margin-left: 10px;
+  padding: 4px 12px;
+  background: white;
+  border-radius: 5px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #6B7280;
+}
+.s2-banner {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0F172A;
+  color: #F1F5F9;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 5;
+  white-space: nowrap;
+}
+.s2-banner kbd {
+  font-family: var(--mono);
+  font-size: 10px;
+  background: rgba(255,255,255,0.12);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #94A3B8;
+}
+.s2-page { padding: 44px 28px 28px; color: #111827; }
+.s2-product {
+  background: white;
+  border-radius: 12px;
+  padding: 22px;
+  display: flex;
+  gap: 18px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.s2-img {
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, #E0E7FF, #C7D2FE);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  color: #818CF8;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.s2-name { font-size: 18px; font-weight: 700; margin-bottom: 5px; letter-spacing: -0.02em; }
+.s2-desc { font-size: 13px; color: #6B7280; margin-bottom: 12px; }
+.s2-price {
+  display: inline-block;
+  font-size: 28px;
+  font-weight: 800;
+  color: #059669;
+  outline: 3px solid var(--emerald);
+  outline-offset: 4px;
+  background: rgba(16,185,129,0.06);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+.s2-stock { font-size: 12px; color: #9CA3AF; margin-top: 8px; }
+.s2-toast {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: #059669;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(5,150,105,0.4);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  z-index: 5;
+}
+
+/* ═══ SLIDE 3: Popup ═══ */
+.s3-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 60px;
+}
+.s3-title {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 8px;
+}
+.s3-title em { color: var(--emeraldBright); font-style: normal; }
+.s3-sub { font-size: 16px; color: var(--gray); margin-bottom: 32px; }
+
+.s3-popup {
+  width: 420px;
+  margin: 0 auto;
+  background: var(--surface);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--border), 0 16px 64px rgba(0,0,0,0.6);
+}
+.s3-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.s3-brand { display: flex; align-items: center; gap: 10px; }
+.s3-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: linear-gradient(145deg, #1EE0A0, #0A8F66);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.s3-name { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+.s3-ver { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+
+.s3-items { padding: 8px 12px; }
+.s3-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 9px;
+  margin-bottom: 3px;
+}
+.s3-item:first-child { background: var(--raised); }
+.s3-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.s3-item-dot.live { background: var(--emerald); box-shadow: 0 0 8px var(--emeraldGlow); }
+.s3-item-dot.paused { background: var(--amber); }
+.s3-item-info { flex: 1; min-width: 0; }
+.s3-item-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
+.s3-item-meta { font-family: var(--mono); font-size: 11px; color: var(--dim); margin-top: 1px; }
+.s3-item-count {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.s3-item-count.has { color: var(--emeraldBright); background: var(--emeraldDim); }
+.s3-item-count.zero { color: var(--dim); background: var(--elevated); }
+
+.s3-btns { display: flex; gap: 6px; padding: 6px 12px 12px; }
+.s3-btn {
+  flex: 1;
+  padding: 11px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+.s3-btn.pri { background: var(--emerald); color: #000; }
+.s3-btn.sec { background: var(--raised); color: var(--gray); border: 1px solid var(--borderD); }
+
+.s3-foot {
+  padding: 8px 20px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.s3-privacy { font-size: 11px; color: var(--emeraldBright); opacity: 0.7; display: flex; align-items: center; gap: 5px; }
+.s3-usage { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.s3-usage b { color: var(--gray); }
+
+/* ═══ SLIDE 4: Dashboard ═══ */
+.s4-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 60px;
+}
+.s4-title {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 8px;
+}
+.s4-title em { color: var(--emeraldBright); font-style: normal; }
+.s4-sub { font-size: 16px; color: var(--gray); margin-bottom: 24px; }
+
+.s4-dash {
+  flex: 1;
+  background: var(--surface);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+}
+.s4-summary {
+  padding: 10px 16px;
+  background: var(--emeraldDim);
+  margin: 10px 16px;
+  border-radius: 7px;
+  font-size: 14px;
+  color: var(--emeraldBright);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+.s4-diff {
+  padding: 8px 16px 16px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 2;
+}
+.s4-diff-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.s4-diff-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.s4-add { background: rgba(16,185,129,0.15); color: #6EE7B7; padding: 2px 6px; border-radius: 4px; }
+.s4-del { background: rgba(239,68,68,0.12); color: #FCA5A5; padding: 2px 6px; border-radius: 4px; text-decoration: line-through; }
+
+/* Stats mini grid */
+.s4-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--borderD);
+  border-radius: 9px;
+  overflow: hidden;
+  margin: 16px;
+}
+.s4-stat { background: var(--surface); padding: 12px 14px; }
+.s4-stat-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); margin-bottom: 4px; }
+.s4-stat-value { font-family: var(--mono); font-size: 15px; font-weight: 600; }
+.s4-stat-value.ok { color: var(--emeraldBright); }
+
+/* Settings pills */
+.s4-pills {
+  display: flex;
+  gap: 6px;
+  padding: 0 16px 12px;
+  flex-wrap: wrap;
+}
+.s4-pill {
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 6px;
+}
+.s4-pill.em { background: var(--emeraldDim); color: var(--emeraldBright); font-family: var(--mono); }
+.s4-pill.kw { background: var(--raised); border: 1px solid var(--borderD); color: var(--gray); }
+.s4-pill.kw span { color: var(--emeraldBright); font-family: var(--mono); }
+
+/* ═══ SLIDE 5: CTA ═══ */
+.s5-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px;
+  text-align: center;
+}
+.s5-headline {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin-top: 28px;
+  margin-bottom: 12px;
+}
+.s5-sub {
+  font-size: 20px;
+  color: var(--gray);
+  margin-bottom: 32px;
+}
+.s5-cta {
+  padding: 16px 40px;
+  background: var(--emerald);
+  color: #000;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 32px;
+}
+.s5-features {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.s5-tag {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--emeraldBright);
+  background: var(--emeraldDim);
+  padding: 6px 16px;
+  border-radius: 6px;
+}
+.s5-link {
+  margin-top: 32px;
+  font-size: 16px;
+  color: var(--dim);
+}
+.s5-link em { color: var(--emeraldBright); font-style: normal; }
+
+/* Download buttons */
+.downloads {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 40px;
+}
+.dl-btn {
+  padding: 12px 24px;
+  background: var(--emerald);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dl-btn:hover { background: #059669; }
+#dl-status { margin-top: 12px; font-size: 13px; color: var(--dim); }
+</style>
+</head>
+<body>
+
+<h2>Instagram Carousel — 5 Slides (1080x1080)</h2>
+<div class="note">Each slide is exactly 1080x1080. Click download buttons below to save each as PNG.</div>
+
+<div class="slides">
+
+<!-- ═══ SLIDE 1: Hook ═══ -->
+<div class="slide" id="slide-1">
+  <div class="slide-bg"></div>
+  <div class="slide-glow" style="top:-150px;right:-100px;"></div>
+  <div class="slide-number">1/5</div>
+  <div class="s1-content">
+    <div class="app-icon">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>
+    </div>
+    <div class="s1-headline">This free tool <em>watches webpages</em> for you</div>
+    <div class="s1-sub">Track prices, job postings, news, and content changes. Get notified with smart diffs.</div>
+    <div class="s1-badge">Free Chrome Extension</div>
+  </div>
+  <div class="swipe-hint">Swipe to see how →</div>
+  <div class="slide-dots"><div class="slide-dot active"></div><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div></div>
+</div>
+
+<!-- ═══ SLIDE 2: Select Element ═══ -->
+<div class="slide" id="slide-2">
+  <div class="slide-bg"></div>
+  <div class="slide-glow" style="bottom:-150px;left:-100px;"></div>
+  <div class="slide-number">2/5</div>
+  <div class="s2-content">
+    <div class="s2-title">Click any element to <em>start tracking</em></div>
+    <div class="s2-sub">Hover to highlight, click to monitor. 10 seconds to set up.</div>
+    <div class="s2-browser">
+      <div class="s2-bar">
+        <div class="s2-dot"></div><div class="s2-dot"></div><div class="s2-dot"></div>
+        <div class="s2-url">amazon.com/dp/B09XYZ</div>
+      </div>
+      <div class="s2-banner">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+        Click an element to monitor
+        <kbd>ESC</kbd>
+      </div>
+      <div class="s2-page">
+        <div class="s2-product">
+          <div class="s2-img">W</div>
+          <div>
+            <div class="s2-name">Wireless Smart Widget Pro</div>
+            <div class="s2-desc">Premium widget with 24hr battery</div>
+            <div class="s2-price">$29.99</div>
+            <div class="s2-stock">In Stock · Free delivery</div>
+          </div>
+        </div>
+      </div>
+      <div class="s2-toast">
+        <span style="width:18px;height:18px;background:rgba(255,255,255,0.2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;">✓</span>
+        Monitor added · checking every 5m
+      </div>
+    </div>
+  </div>
+  <div class="slide-dots"><div class="slide-dot"></div><div class="slide-dot active"></div><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div></div>
+</div>
+
+<!-- ═══ SLIDE 3: Popup ═══ -->
+<div class="slide" id="slide-3">
+  <div class="slide-bg"></div>
+  <div class="slide-glow" style="top:-100px;left:50%;"></div>
+  <div class="slide-number">3/5</div>
+  <div class="s3-content">
+    <div class="s3-title">See all monitors <em>at a glance</em></div>
+    <div class="s3-sub">Live status, change counts, pause controls. One click to dashboard.</div>
+    <div class="s3-popup">
+      <div class="s3-head">
+        <div class="s3-brand">
+          <div class="s3-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M2 12h4l3-9 4 18 3-9h4"/></svg></div>
+          <span class="s3-name">PagePulse</span>
+        </div>
+        <span class="s3-ver">v1.0</span>
+      </div>
+      <div class="s3-items">
+        <div class="s3-item">
+          <div class="s3-item-dot live"></div>
+          <div class="s3-item-info"><div class="s3-item-name">Amazon Widget Price</div><div class="s3-item-meta">2m ago · amazon.com</div></div>
+          <div class="s3-item-count has">3</div>
+        </div>
+        <div class="s3-item">
+          <div class="s3-item-dot live"></div>
+          <div class="s3-item-info"><div class="s3-item-name">Hacker News Front Page</div><div class="s3-item-meta">5m ago · ycombinator.com</div></div>
+          <div class="s3-item-count has">47</div>
+        </div>
+        <div class="s3-item">
+          <div class="s3-item-dot live"></div>
+          <div class="s3-item-info"><div class="s3-item-name">Indeed Senior Dev Roles</div><div class="s3-item-meta">1h ago · indeed.com</div></div>
+          <div class="s3-item-count has">7</div>
+        </div>
+        <div class="s3-item">
+          <div class="s3-item-dot paused"></div>
+          <div class="s3-item-info"><div class="s3-item-name">Gov.uk Visa Policy</div><div class="s3-item-meta" style="color:var(--amber)">Paused</div></div>
+          <div class="s3-item-count zero">0</div>
+        </div>
+      </div>
+      <div class="s3-btns">
+        <div class="s3-btn pri">+ Add Monitor</div>
+        <div class="s3-btn sec">Dashboard</div>
+      </div>
+      <div class="s3-foot">
+        <span class="s3-privacy"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Local only</span>
+        <span class="s3-usage"><b>4</b>/10 monitors</span>
+      </div>
+    </div>
+  </div>
+  <div class="slide-dots"><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot active"></div><div class="slide-dot"></div><div class="slide-dot"></div></div>
+</div>
+
+<!-- ═══ SLIDE 4: Dashboard + Diff ═══ -->
+<div class="slide" id="slide-4">
+  <div class="slide-bg"></div>
+  <div class="slide-glow" style="top:-100px;right:-100px;"></div>
+  <div class="slide-number">4/5</div>
+  <div class="s4-content">
+    <div class="s4-title">Smart diffs show <em>exactly what changed</em></div>
+    <div class="s4-sub">Summaries, keyword filters, ignore patterns. Zero noise.</div>
+    <div class="s4-dash">
+      <div class="s4-stats">
+        <div class="s4-stat"><div class="s4-stat-label">Status</div><div class="s4-stat-value ok">Active</div></div>
+        <div class="s4-stat"><div class="s4-stat-label">Checked</div><div class="s4-stat-value">2m ago</div></div>
+        <div class="s4-stat"><div class="s4-stat-label">Changes</div><div class="s4-stat-value">47</div></div>
+        <div class="s4-stat"><div class="s4-stat-label">Health</div><div class="s4-stat-value ok">Healthy</div></div>
+      </div>
+      <div class="s4-pills">
+        <div class="s4-pill kw">Keywords: <span>rust, AI, hiring</span></div>
+        <div class="s4-pill em">Summary</div>
+        <div class="s4-pill em">15m</div>
+        <div class="s4-pill em">Instant</div>
+      </div>
+      <!-- Entry header -->
+      <div style="display:flex;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-top:4px;">
+        <span style="font-family:var(--mono);font-size:12px;color:var(--dim);">Mar 24, 2026 · 1:42 PM</span>
+        <span style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:3px 8px;border-radius:4px;background:var(--emeraldDim);color:var(--emeraldBright);">Changed</span>
+      </div>
+      <div class="s4-summary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        3 new items, 2 removed
+      </div>
+      <div class="s4-diff">
+        <div class="s4-diff-item"><div class="s4-diff-dot" style="background:var(--emerald);"></div><span class="s4-add">Rust Compiler Released for ARM64</span></div>
+        <div class="s4-diff-item"><div class="s4-diff-dot" style="background:var(--emerald);"></div><span class="s4-add">AI Breakthrough at DeepMind</span></div>
+        <div class="s4-diff-item"><div class="s4-diff-dot" style="background:var(--emerald);"></div><span class="s4-add">Show HN: PagePulse</span></div>
+        <div class="s4-diff-item" style="opacity:0.5;"><div class="s4-diff-dot" style="background:var(--red);"></div><span class="s4-del">4Chan Fined for Safety Breach</span></div>
+        <div class="s4-diff-item" style="opacity:0.5;"><div class="s4-diff-dot" style="background:var(--red);"></div><span class="s4-del">Old Calculator Post</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-dots"><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot active"></div><div class="slide-dot"></div></div>
+</div>
+
+<!-- ═══ SLIDE 5: CTA ═══ -->
+<div class="slide" id="slide-5">
+  <div class="slide-bg"></div>
+  <div class="slide-glow" style="top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+  <div class="slide-number">5/5</div>
+  <div class="s5-content">
+    <div class="app-icon" style="width:80px;height:80px;border-radius:20px;">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>
+    </div>
+    <div class="s5-headline">Free. Private.<br>No account needed.</div>
+    <div class="s5-sub">10 monitors · 5-minute checks · 30-day history</div>
+    <div class="s5-cta">Add to Chrome — Free</div>
+    <div class="s5-features">
+      <span class="s5-tag">Smart Diffs</span>
+      <span class="s5-tag">Keywords</span>
+      <span class="s5-tag">JS Rendered</span>
+      <span class="s5-tag">Digest Mode</span>
+      <span class="s5-tag">Privacy First</span>
+    </div>
+    <div class="s5-link">Link in bio <em>↑</em></div>
+  </div>
+  <div class="slide-dots"><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot active"></div></div>
+</div>
+
+</div>
+
+<!-- Download buttons -->
+<div class="downloads">
+  <button class="dl-btn" onclick="downloadSlide(1)">Download Slide 1</button>
+  <button class="dl-btn" onclick="downloadSlide(2)">Download Slide 2</button>
+  <button class="dl-btn" onclick="downloadSlide(3)">Download Slide 3</button>
+  <button class="dl-btn" onclick="downloadSlide(4)">Download Slide 4</button>
+  <button class="dl-btn" onclick="downloadSlide(5)">Download Slide 5</button>
+  <button class="dl-btn" onclick="downloadAll()" style="background:#059669;">Download All</button>
+</div>
+<div id="dl-status"></div>
+
+<script>
+async function downloadSlide(n) {
+  const el = document.getElementById(`slide-${n}`);
+  const status = document.getElementById('dl-status');
+  status.textContent = `Rendering slide ${n}...`;
+  const canvas = await html2canvas(el, { width: 1080, height: 1080, scale: 1, backgroundColor: null, useCORS: true });
+  if (canvas.width !== 1080 || canvas.height !== 1080) {
+    const r = document.createElement('canvas');
+    r.width = 1080; r.height = 1080;
+    r.getContext('2d').drawImage(canvas, 0, 0, 1080, 1080);
+    downloadCanvas(r, `pagepulse-carousel-${n}.png`);
+  } else {
+    downloadCanvas(canvas, `pagepulse-carousel-${n}.png`);
+  }
+  status.textContent = `Downloaded slide ${n} (1080x1080)`;
+  status.style.color = '#10B981';
+}
+async function downloadAll() {
+  for (let i = 1; i <= 5; i++) {
+    await downloadSlide(i);
+    await new Promise(r => setTimeout(r, 500));
+  }
+  document.getElementById('dl-status').textContent = 'All 5 slides downloaded!';
+}
+function downloadCanvas(canvas, filename) {
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+</script>
+
+</body>
+</html>
