@@ -4,10 +4,17 @@ import { hasOriginAccess, extractOrigin } from './lib/permissions.js';
 import { notifyBatch, updateBadge } from './lib/notifications.js';
 import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, NOTIFY_MODES } from './lib/constants.js';
 
-// --- Alarm Setup ---
+// --- Alarm Setup + Context Menu ---
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
   chrome.alarms.create(DIGEST_ALARM_NAME, { periodInMinutes: 60 });
+
+  // Right-click context menu
+  chrome.contextMenus.create({
+    id: 'pagepulse-monitor',
+    title: 'Monitor this element with PagePulse',
+    contexts: ['all'],
+  });
 });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -227,6 +234,20 @@ chrome.notifications.onClicked.addListener((notificationId) => {
   chrome.notifications.clear(notificationId);
   // Clear badge when user clicks
   chrome.action.setBadgeText({ text: '' });
+});
+
+// --- Context Menu Handler ---
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId !== 'pagepulse-monitor' || !tab?.id) return;
+  // Inject the content script to start element selection
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['content.js'],
+    });
+  } catch (e) {
+    console.error('[PagePulse] Context menu inject failed:', e);
+  }
 });
 
 // --- Message Handler ---

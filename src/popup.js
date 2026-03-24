@@ -12,16 +12,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     themeBtn.innerHTML = next === 'dark' ? sunIcon : moonIcon;
   });
 
-  // Clear badge when popup opens
+  // Clear badge
   chrome.action.setBadgeText({ text: '' });
 
   const monitors = await getMonitors();
   const settings = await getSettings();
   const limits = TIER_LIMITS[settings.tier];
-
-  // Monitor list
-  const listEl = document.getElementById('monitor-list');
   const monitorArr = Object.values(monitors);
+
+  // ── SMART FLOW: Zero monitors → go straight to selection ──
+  if (monitorArr.length === 0) {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id && tab.url && !tab.url.startsWith('chrome://')) {
+      // Try to start selection immediately
+      const origin = new URL(tab.url).origin;
+
+      // Check if we already have permission
+      const hasPermission = await chrome.permissions.contains({ origins: [`${origin}/*`] });
+      if (hasPermission) {
+        // Permission granted → skip popup, go straight to selection
+        chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id }, () => void chrome.runtime.lastError);
+        window.close();
+        return;
+      }
+
+      // No permission → request it, then start selection
+      const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
+      if (granted) {
+        chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id }, () => void chrome.runtime.lastError);
+        window.close();
+        return;
+      }
+      // Permission denied → fall through to show the popup normally
+    }
+  }
+
+  // ── Render monitor list ──
+  const listEl = document.getElementById('monitor-list');
 
   if (monitorArr.length === 0) {
     listEl.innerHTML = `
@@ -38,7 +65,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     listEl.innerHTML = '';
     for (const m of monitorArr.sort((a, b) => b.createdAt - a.createdAt)) {
-      // Status: paused overrides other states
       let statusClass, metaText;
       if (!m.active) {
         statusClass = 'paused';
@@ -67,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Click monitor item → open dashboard to that monitor
+  // ── Click handlers on monitor list ──
   listEl.addEventListener('click', async (e) => {
     // Toggle button
     const toggle = e.target.closest('.pm-toggle');
@@ -81,7 +107,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       toggle.className = `pm-toggle ${newActive ? 'on' : 'off'}`;
       monitors[id].active = newActive;
 
-      // Update status dot and meta text
       const item = toggle.closest('.popup-monitor');
       const dot = item.querySelector('.pm-status');
       const meta = item.querySelector('.pm-meta');
@@ -95,7 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // Click on monitor item → open dashboard
+    // Click monitor → open dashboard
     const item = e.target.closest('.popup-monitor');
     if (item && item.dataset.id) {
       chrome.tabs.create({ url: chrome.runtime.getURL(`dashboard.html?monitor=${item.dataset.id}`) });
@@ -103,17 +128,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Add Monitor
+  // ── Add Monitor (smart: check existing permission first) ──
   document.getElementById('btn-add').addEventListener('click', async () => {
     const activeCount = monitorArr.filter((m) => m.active).length;
-    if (activeCount >= limits.maxMonitors) {
+    if (activeCount >= limits.maxMonitors) return;
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id || !tab.url || tab.url.startsWith('chrome://')) return;
+
+    const origin = new URL(tab.url).origin;
+
+    // Check if already have permission — skip the prompt
+    const hasPermission = await chrome.permissions.contains({ origins: [`${origin}/*`] });
+    if (hasPermission) {
+      chrome.runtime.sendMessage({ action: 'startSelection', tabId: tab.id }, () => void chrome.runtime.lastError);
+      window.close();
       return;
     }
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id || !tab.url) return;
 
-    // Request host permission HERE (popup is an extension page with user gesture)
-    const origin = new URL(tab.url).origin;
+    // Need permission — request it
     const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
     if (!granted) return;
 
@@ -121,14 +154,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.close();
   });
 
-  // Dashboard
+  // ── Dashboard button ──
   document.getElementById('btn-dashboard').addEventListener('click', (e) => {
     e.preventDefault();
     chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') });
     window.close();
   });
 
-  // Usage
+  // ── Usage bar ──
   const activeCount = monitorArr.filter((m) => m.active).length;
   document.getElementById('usage-text').innerHTML = `<strong>${activeCount}</strong>/${limits.maxMonitors} monitors`;
   document.getElementById('usage-fill').style.width = `${(activeCount / limits.maxMonitors) * 100}%`;
