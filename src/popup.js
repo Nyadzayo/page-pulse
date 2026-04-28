@@ -79,11 +79,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         item.innerHTML = `
           <div class="pm-status ${statusClass}"></div>
           <div class="pm-info">
-            <div class="pm-name" title="${escapeHtml(m.label)}">${escapeHtml(m.label)}</div>
+            <div class="pm-name" title="${escapeAttr(m.label)}">${escapeHtml(m.label)}</div>
             <div class="pm-meta">${metaText}</div>
           </div>
           <div class="pm-changes ${m.changeCount === 0 ? 'zero' : ''}">${m.changeCount || '0'}</div>
-          <button class="pm-toggle ${m.active ? 'on' : 'off'}" data-id="${m.id}"></button>
+          <button class="pm-toggle ${m.active ? 'on' : 'off'}" data-id="${escapeAttr(m.id)}"></button>
         `;
         listEl.appendChild(item);
       }
@@ -193,6 +193,18 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str || '';
   return div.innerHTML;
+}
+
+// escapeHtml() (textContent → innerHTML) does NOT escape `"` or `'`. Use
+// escapeAttr() at every attribute-interpolation site to prevent quote
+// breakouts that could inject event handlers.
+function escapeAttr(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function isMonitorablePage(url) {

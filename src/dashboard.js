@@ -9,6 +9,11 @@ const soundOffIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 
 let currentMonitorId = null;
 
+// History entries indexed by string position so the rendered HTML never has
+// to embed untrusted entry text in attributes (see escapeAttr() comment
+// below). The click handler reads data-idx and looks up by index.
+const historyEntryMap = new Map();
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Theme
   initTheme();
@@ -78,12 +83,12 @@ async function loadSidebar() {
       (m.consecutiveErrors > 0) ? 'Flaky' : '';
     const pausedTag = !m.active ? '<span class="ds-paused">PAUSED</span>' : '';
     return `
-      <div class="ds-item ${m.id === currentMonitorId ? 'active' : ''}" data-id="${m.id}">
+      <div class="ds-item ${m.id === currentMonitorId ? 'active' : ''}" data-id="${escapeAttr(m.id)}">
         <div class="ds-dot ${dotClass}"></div>
         <div class="ds-info">
           <div class="ds-name">${escapeHtml(m.label)}</div>
-          <div class="ds-host">${host}</div>
-          ${healthText ? `<div class="ds-health">${healthText}</div>` : ''}
+          <div class="ds-host">${escapeHtml(host)}</div>
+          ${healthText ? `<div class="ds-health">${escapeHtml(healthText)}</div>` : ''}
         </div>
         <span class="ds-badge ${m.changeCount > 0 ? 'changes' : 'zero'}">${m.changeCount > 0 ? m.changeCount : '—'}</span>
         ${pausedTag}
@@ -148,7 +153,7 @@ async function selectMonitor(id) {
       .replace(' minutes', 'm')
       .replace(' hour', 'h')
       .replace(' hours', 'h');
-    return `<button class="dm-interval-opt ${isActive ? 'active' : ''}" data-ms="${i.ms}">${labelShort}</button>`;
+    return `<button class="dm-interval-opt ${isActive ? 'active' : ''}" data-ms="${escapeAttr(i.ms)}">${escapeHtml(labelShort)}</button>`;
   }).join('');
 
   // Keywords
@@ -181,11 +186,14 @@ async function selectMonitor(id) {
   // History
   const history = await getHistory(id);
   const historyList = document.getElementById('history-list');
+  historyEntryMap.clear();
   if (history.length === 0) {
     historyList.innerHTML = '<p style="color:var(--text-tertiary);font-size:12px;">No changes detected yet.</p>';
   } else {
-    historyList.innerHTML = history.sort((a, b) => b.ts - a.ts).map(entry => {
-      return renderHistoryEntry(entry, diffMode);
+    const sorted = history.sort((a, b) => b.ts - a.ts);
+    historyList.innerHTML = sorted.map((entry, idx) => {
+      historyEntryMap.set(String(idx), entry);
+      return renderHistoryEntry(entry, diffMode, idx);
     }).join('');
   }
 
@@ -228,7 +236,7 @@ function renderSummaryHtml(entry) {
     for (const part of summary.parts) {
       html += `<ul class="dm-summary-items">`;
       for (const item of part.items) {
-        html += `<li class="${part.type}">${escapeHtml(item)}</li>`;
+        html += `<li class="${escapeAttr(part.type)}">${escapeHtml(item)}</li>`;
       }
       html += `</ul>`;
     }
@@ -246,7 +254,7 @@ function renderDetailedHtml(entry) {
   }).join('')}</div>`;
 }
 
-function renderHistoryEntry(entry, diffMode) {
+function renderHistoryEntry(entry, diffMode, idx) {
   let bodyHtml = '';
   if (diffMode === DIFF_MODES.SUMMARY) {
     bodyHtml = renderSummaryHtml(entry);
@@ -254,20 +262,20 @@ function renderHistoryEntry(entry, diffMode) {
     bodyHtml = renderDetailedHtml(entry);
   } else {
     // BOTH: summary at top, expandable detailed diff below
-    const uid = 'detail-' + entry.ts;
+    const uid = 'detail-' + idx;
     bodyHtml = renderSummaryHtml(entry);
     bodyHtml += `<div style="padding:0 14px 10px;">
-      <button class="dm-detail-toggle" data-target="${uid}">Show detailed diff</button>
-      <div id="${uid}" class="dm-detail-collapsible">${renderDetailedHtml(entry)}</div>
+      <button class="dm-detail-toggle" data-target="${escapeAttr(uid)}">Show detailed diff</button>
+      <div id="${escapeAttr(uid)}" class="dm-detail-collapsible">${renderDetailedHtml(entry)}</div>
     </div>`;
   }
 
   return `
     <div class="dm-entry">
       <div class="dm-entry-head">
-        <span class="dm-entry-time">${new Date(entry.ts).toLocaleString()}</span>
+        <span class="dm-entry-time">${escapeHtml(new Date(entry.ts).toLocaleString())}</span>
         <div style="display:flex;gap:6px;align-items:center;">
-          <button class="dm-copy-btn" data-old="${escapeHtml(entry.old)}" data-new="${escapeHtml(entry.new)}" title="Copy to clipboard">
+          <button class="dm-copy-btn" data-idx="${escapeAttr(idx)}" title="Copy to clipboard">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           </button>
           <span class="dm-entry-tag">Changed</span>
@@ -448,8 +456,10 @@ function setupEventListeners() {
     // Handle copy button
     const copyBtn = e.target.closest('.dm-copy-btn');
     if (copyBtn) {
-      const old = copyBtn.dataset.old;
-      const nw = copyBtn.dataset.new;
+      const entry = historyEntryMap.get(copyBtn.dataset.idx);
+      if (!entry) return;
+      const old = entry.old || '';
+      const nw = entry.new || '';
       const monitors = await getMonitors();
       const monitor = monitors[currentMonitorId];
       const text = `PagePulse Change — ${monitor?.label || 'Monitor'}\n${new Date().toLocaleString()}\nOld: ${old.substring(0, 200)}\nNew: ${nw.substring(0, 200)}\n\nTracked by PagePulse — free website change monitor`;
@@ -550,6 +560,21 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str || '';
   return div.innerHTML;
+}
+
+// escapeHtml() round-trips through textContent → innerHTML which does NOT
+// escape `"` or `'` (they are valid in text). When that output is interpolated
+// into an HTML attribute, an attacker can close the attribute and inject
+// event handlers (e.g. `" onmouseover="...`). Use escapeAttr() at every
+// attribute-interpolation site so the five HTML-significant characters are
+// all escaped.
+function escapeAttr(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function playChimePreview() {
@@ -658,7 +683,7 @@ function showShareModal(monitor) {
       <div class="share-title">Share Monitor</div>
       <div class="share-subtitle">Share this monitor config — others with PagePulse can import it with one click</div>
       <div class="share-link-box">
-        <input class="share-link-input" value="${escapeHtml(shareLink)}" readonly>
+        <input class="share-link-input" value="${escapeAttr(shareLink)}" readonly>
         <button class="share-copy-btn" id="share-copy-link">Copy Link</button>
       </div>
       <div class="share-subtitle">Or share as text:</div>
