@@ -135,54 +135,21 @@
           </div>
 
           <div class="dm-monitor-settings">
-            <div class="dm-setting">
+            <div class="dm-setting dm-setting-compact">
               <label class="dm-setting-label">Page type</label>
               <div id="render-mode-options" class="dm-interval-options">
                 <button class="dm-interval-opt" data-render="fetch">Standard</button>
                 <button class="dm-interval-opt" data-render="browser">JS Rendered</button>
               </div>
-              <span class="dm-setting-hint">Use "JS Rendered" for SPAs, login-required pages, or dynamic sites</span>
             </div>
-            <div class="dm-setting">
-              <label class="dm-setting-label">Keywords</label>
-              <input id="detail-keywords" type="text" class="dm-setting-input" placeholder="e.g. rust, AI, hiring (empty = all changes)">
-              <span class="dm-setting-hint">Only notify when change contains these words</span>
-            </div>
-            <div class="dm-setting" style="align-items:flex-start;">
-              <label class="dm-setting-label" style="padding-top:8px;">Webhook</label>
-              <div style="flex:1;">
-                <input id="detail-webhook" type="url" class="dm-setting-input" placeholder="https://hooks.slack.com/... or Discord/Zapier URL">
-                <span id="detail-webhook-status" class="dm-setting-hint">Slack/Discord/Zapier — fires JSON POST on change. Leave empty to skip.</span>
-              </div>
-            </div>
-            <div class="dm-setting" style="align-items:flex-start;">
-              <label class="dm-setting-label" style="padding-top:8px;">AI prompt</label>
-              <div style="flex:1;">
-                <textarea id="detail-ai-instruction" class="dm-setting-input" rows="2" style="resize:vertical;font-size:11px;line-height:1.5;" placeholder="(global instruction is used)"></textarea>
-                <span class="dm-setting-hint">Per-monitor override. Empty = use the global custom instruction (or the built-in).</span>
-              </div>
-            </div>
-            <div class="dm-setting" style="align-items:flex-start;">
-              <label class="dm-setting-label" style="padding-top:8px;">Ignore</label>
-              <div style="flex:1;">
-                <textarea id="detail-ignore" class="dm-setting-input" rows="3" placeholder="Regex patterns to ignore (one per line)&#10;e.g. \d+ (minutes?|hours?) ago&#10;\d+ points?" style="resize:vertical;font-size:11px;line-height:1.5;"></textarea>
-                <span class="dm-setting-hint">Changes matching these patterns won't trigger alerts</span>
-                <div class="dm-presets">
-                  <span class="dm-setting-hint">Presets:</span>
-                  <button class="dm-preset-btn" data-pattern="\d+\s*(minutes?|hours?|days?|seconds?)\s*ago">Timestamps</button>
-                  <button class="dm-preset-btn" data-pattern="\d+\s*points?">Points</button>
-                  <button class="dm-preset-btn" data-pattern="\d+\s*comments?">Comments</button>
-                </div>
-              </div>
-            </div>
-            <div class="dm-setting">
+            <div class="dm-setting dm-setting-compact">
               <label class="dm-setting-label">Alerts</label>
               <div id="notify-mode-options" class="dm-interval-options">
                 <button class="dm-interval-opt" data-notify="instant">Instant</button>
                 <button class="dm-interval-opt" data-notify="digest">Digest</button>
               </div>
             </div>
-            <div class="dm-setting">
+            <div class="dm-setting dm-setting-compact">
               <label class="dm-setting-label">Diff view</label>
               <div id="diff-mode-options" class="dm-interval-options">
                 <button class="dm-interval-opt" data-mode="summary">Summary</button>
@@ -190,10 +157,47 @@
                 <button class="dm-interval-opt" data-mode="both">Both</button>
               </div>
             </div>
+            <div class="dm-setting dm-setting-compact">
+              <label class="dm-setting-label">Keywords</label>
+              <input id="detail-keywords" type="text" class="dm-setting-input" placeholder="e.g. rust, AI, hiring">
+            </div>
+            <div class="dm-setting dm-setting-compact">
+              <label class="dm-setting-label">Webhook</label>
+              <input id="detail-webhook" type="url" class="dm-setting-input" placeholder="https://hooks.slack.com/...">
+              <span id="detail-webhook-status" class="dm-setting-hint" style="display:none;"></span>
+            </div>
+            <div class="dm-setting dm-setting-wide" style="align-items:flex-start;">
+              <label class="dm-setting-label" style="padding-top:8px;">AI prompt</label>
+              <div style="flex:1;">
+                <textarea id="detail-ai-instruction" class="dm-setting-input" rows="2" style="resize:vertical;font-size:11px;line-height:1.5;" placeholder="(global instruction is used)"></textarea>
+              </div>
+            </div>
+            <div class="dm-setting dm-setting-wide" style="align-items:flex-start;">
+              <label class="dm-setting-label" style="padding-top:8px;">Ignore</label>
+              <div style="flex:1;">
+                <textarea id="detail-ignore" class="dm-setting-input" rows="2" placeholder="Regex patterns to ignore (one per line) — e.g. \d+ (minutes?|hours?) ago" style="resize:vertical;font-size:11px;line-height:1.5;"></textarea>
+                <div class="dm-presets">
+                  <button class="dm-preset-btn" data-pattern="\d+\s*(minutes?|hours?|days?|seconds?)\s*ago">Timestamps</button>
+                  <button class="dm-preset-btn" data-pattern="\d+\s*points?">Points</button>
+                  <button class="dm-preset-btn" data-pattern="\d+\s*comments?">Comments</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="latest-summary-section" class="dm-summary-section" style="display:none;">
+            <div class="dm-summary-card">
+              <div class="dm-summary-head">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                <span>AI Summary — latest change</span>
+              </div>
+              <div id="latest-summary-text" class="dm-summary-body"></div>
+            </div>
           </div>
 
           <div class="dm-section-label">Current Value<span class="line"></span></div>
           <pre id="detail-baseline" class="dm-baseline"></pre>
+          <button id="btn-baseline-toggle" class="dm-baseline-toggle" style="display:none;">Show full content</button>
 
           <div class="dm-section-label">Change History<span class="line"></span></div>
           <div id="history-list" class="dm-history"></div>

@@ -427,21 +427,54 @@ async function selectMonitor(id) {
     btn.classList.toggle('active', btn.dataset.mode === diffMode);
   });
 
-  // Baseline
-  document.getElementById('detail-baseline').textContent = monitor.baseline || '(empty)';
+  // Baseline — truncate long content with a Show more toggle so the
+  // page doesn't blow up vertically for monitors on long lists.
+  const baselineEl = document.getElementById('detail-baseline');
+  const baselineToggleEl = document.getElementById('btn-baseline-toggle');
+  const fullBaseline = monitor.baseline || '(empty)';
+  const BASELINE_TRUNCATE = 1200;
+  if (fullBaseline.length > BASELINE_TRUNCATE) {
+    baselineEl.dataset.full = fullBaseline;
+    baselineEl.dataset.expanded = 'false';
+    baselineEl.textContent = fullBaseline.slice(0, BASELINE_TRUNCATE) + '\n…';
+    if (baselineToggleEl) {
+      baselineToggleEl.style.display = 'inline-block';
+      baselineToggleEl.textContent = `Show full content (${fullBaseline.length.toLocaleString()} chars)`;
+    }
+  } else {
+    baselineEl.textContent = fullBaseline;
+    baselineEl.dataset.full = '';
+    baselineEl.dataset.expanded = 'true';
+    if (baselineToggleEl) baselineToggleEl.style.display = 'none';
+  }
 
   // History
   const history = await getHistory(id);
   const historyList = document.getElementById('history-list');
   historyEntryMap.clear();
+  let sortedHistory = [];
   if (history.length === 0) {
     historyList.innerHTML = '<p style="color:var(--text-tertiary);font-size:12px;">No changes detected yet.</p>';
   } else {
-    const sorted = history.sort((a, b) => b.ts - a.ts);
-    historyList.innerHTML = sorted.map((entry, idx) => {
+    sortedHistory = history.sort((a, b) => b.ts - a.ts);
+    historyList.innerHTML = sortedHistory.map((entry, idx) => {
       historyEntryMap.set(String(idx), entry);
       return renderHistoryEntry(entry, diffMode, idx);
     }).join('');
+  }
+
+  // Latest-summary card above CURRENT VALUE — only when the most recent
+  // history entry has a summary, so the user sees AI insight at a glance.
+  const summarySection = document.getElementById('latest-summary-section');
+  const summaryTextEl = document.getElementById('latest-summary-text');
+  if (summarySection && summaryTextEl) {
+    const latest = sortedHistory[0];
+    if (latest && latest.summary) {
+      summaryTextEl.textContent = latest.summary;
+      summarySection.style.display = '';
+    } else {
+      summarySection.style.display = 'none';
+    }
   }
 
   // Pause/Resume button state
@@ -627,6 +660,25 @@ function setupEventListeners() {
     btn.disabled = false;
   });
 
+  // Show full / collapse current value baseline.
+  document.getElementById('btn-baseline-toggle')?.addEventListener('click', () => {
+    const baselineEl = document.getElementById('detail-baseline');
+    const toggleEl = document.getElementById('btn-baseline-toggle');
+    if (!baselineEl || !toggleEl) return;
+    const full = baselineEl.dataset.full;
+    if (!full) return;
+    const expanded = baselineEl.dataset.expanded === 'true';
+    if (expanded) {
+      baselineEl.textContent = full.slice(0, 1200) + '\n…';
+      baselineEl.dataset.expanded = 'false';
+      toggleEl.textContent = `Show full content (${full.length.toLocaleString()} chars)`;
+    } else {
+      baselineEl.textContent = full;
+      baselineEl.dataset.expanded = 'true';
+      toggleEl.textContent = 'Collapse';
+    }
+  });
+
   // Top-level "Generate AI Summary" — picks the most recent history entry
   // and calls the LLM with the resolved instruction (per-monitor → global →
   // built-in default). Surfaces clear errors when AI is not configured or
@@ -659,25 +711,33 @@ function setupEventListeners() {
       (monitor.aiSummaryInstruction || '').trim()
       || (settings.aiSummaryInstruction || '').trim()
       || undefined;
+    let summary = null;
+    let errMsg = null;
     try {
-      const summary = await summarizeChange(monitor, entry, {
+      summary = await summarizeChange(monitor, entry, {
         provider: settings.aiProvider,
         apiKey: settings.aiApiKey,
         apiUrl: settings.aiApiUrl,
         model: settings.aiModel,
         instruction: effectiveInstruction,
       });
-      if (summary) {
-        await updateHistoryEntry(currentMonitorId, entry.ts, { summary });
-        await selectMonitor(currentMonitorId);
-        // selectMonitor re-renders → button is restored to original state.
-      } else {
-        btn.textContent = 'Failed — check API key + permissions';
-        setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2500);
-      }
     } catch (err) {
-      btn.textContent = `Error: ${(err && err.message) || 'unknown'}`;
-      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2500);
+      errMsg = (err && err.message) || 'unknown';
+    }
+    // ALWAYS restore the button before re-rendering — selectMonitor only
+    // updates fields/inputs, not the action-row buttons. Without this,
+    // the "Generating…" label sticks forever on success.
+    btn.innerHTML = original;
+    btn.disabled = false;
+    if (summary) {
+      await updateHistoryEntry(currentMonitorId, entry.ts, { summary });
+      await selectMonitor(currentMonitorId);
+    } else if (errMsg) {
+      btn.textContent = `Error: ${errMsg}`;
+      setTimeout(() => { btn.innerHTML = original; }, 2500);
+    } else {
+      btn.textContent = 'Failed — check API key + permissions';
+      setTimeout(() => { btn.innerHTML = original; }, 2500);
     }
   });
 
