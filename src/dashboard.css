@@ -952,7 +952,7 @@ html, body {
 /* ─── Monitor Settings ──────────────────────────────────────────────────────── */
 .dm-monitor-settings {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(12, 1fr);
   gap: 8px;
   margin-bottom: 16px;
 }
@@ -964,12 +964,42 @@ html, body {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md, 7px);
+  min-width: 0;
+}
+.dm-setting-compact {
+  grid-column: span 4;
+}
+.dm-setting-input-row {
+  grid-column: span 6;
 }
 .dm-setting-wide {
-  grid-column: 1 / -1;
+  grid-column: span 12;
 }
 .dm-setting-compact .dm-setting-label {
-  min-width: 70px;
+  min-width: 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.dm-setting-compact .dm-interval-options {
+  margin-left: auto;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.dm-setting .dm-interval-opt {
+  white-space: nowrap;
+}
+.dm-setting .dm-setting-input {
+  min-width: 0;
+}
+
+/* Below ~720px the 12-column grid becomes uncomfortable; collapse to one. */
+@media (max-width: 720px) {
+  .dm-setting-compact,
+  .dm-setting-input-row {
+    grid-column: span 12;
+  }
 }
 .dm-setting-label {
   font-size: 12px;
