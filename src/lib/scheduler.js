@@ -23,18 +23,38 @@ export function limitUrlBatch(urlGroups) {
   return Object.keys(urlGroups).slice(0, MAX_URLS_PER_TICK);
 }
 
-export function processCheckResults(monitor, result, now) {
+/**
+ * @typedef {Object} CheckOutcome
+ * @property {boolean} changed - Whether the check produced a meaningful, notifiable change.
+ * @property {?{ts: number, old: string, new: string}} historyEntry - Diff entry to append, or null.
+ * @property {Object} monitorUpdates - Patch to merge into the monitor record (no `changed`/`historyEntry`).
+ */
+
+/**
+ * Pure evaluator for a single check result. Returns a structured CheckOutcome
+ * separating notification semantics (changed, historyEntry) from storage state
+ * (monitorUpdates). Replaces the legacy flat-shape returned by processCheckResults.
+ *
+ * @param {Object} monitor
+ * @param {{monitorId: string, text: ?string, matchedBy: ?string}} result
+ * @param {number} now
+ * @returns {CheckOutcome}
+ */
+export function evaluateCheck(monitor, result, now) {
   if (result.text === null || result.matchedBy === null) {
     const newErrorCount = monitor.consecutiveErrors + 1;
     const firstError = monitor.firstErrorAt || now;
     const windowExceeded = (now - firstError) > BROKEN_WINDOW_MS;
     const thresholdExceeded = newErrorCount >= BROKEN_THRESHOLD;
     return {
-      lastChecked: now,
-      consecutiveErrors: newErrorCount,
-      firstErrorAt: firstError,
-      status: (thresholdExceeded && windowExceeded) ? STATUS.BROKEN : STATUS.OK,
       changed: false,
+      historyEntry: null,
+      monitorUpdates: {
+        lastChecked: now,
+        consecutiveErrors: newErrorCount,
+        firstErrorAt: firstError,
+        status: (thresholdExceeded && windowExceeded) ? STATUS.BROKEN : STATUS.OK,
+      },
     };
   }
 
@@ -47,18 +67,46 @@ export function processCheckResults(monitor, result, now) {
 
   if (hasMeaningfulChange(cleanedBaseline, cleanedResult)) {
     // Check keyword filter: if keywords are set and none match the added text,
-    // still update baseline (track latest state) but suppress notification/history
+    // still update baseline (track latest state) but suppress notification/history.
     if (monitor.keywords && monitor.keywords.trim() &&
         !matchesKeyword(monitor.baseline, result.text, monitor.keywords)) {
-      return { ...base, changed: false, baseline: result.text };
+      return {
+        changed: false,
+        historyEntry: null,
+        monitorUpdates: { ...base, baseline: result.text },
+      };
     }
     return {
-      ...base, changed: true, baseline: result.text,
-      changeCount: monitor.changeCount + 1, lastChanged: now,
+      changed: true,
       historyEntry: { ts: now, old: monitor.baseline, new: result.text },
+      monitorUpdates: {
+        ...base,
+        baseline: result.text,
+        changeCount: monitor.changeCount + 1,
+        lastChanged: now,
+      },
     };
   }
-  // No meaningful change — but update baseline to latest original text so it stays current
+
+  // No meaningful change — but update baseline to latest original text so it stays current.
   const baselineChanged = hasMeaningfulChange(monitor.baseline, result.text);
-  return { ...base, changed: false, ...(baselineChanged ? { baseline: result.text } : {}) };
+  return {
+    changed: false,
+    historyEntry: null,
+    monitorUpdates: { ...base, ...(baselineChanged ? { baseline: result.text } : {}) },
+  };
+}
+
+/**
+ * Legacy flat-shape adapter around evaluateCheck. Kept for back-compat with
+ * existing tests and any caller that hasn't migrated to the structured outcome.
+ * New callers should use evaluateCheck directly.
+ *
+ * @deprecated Prefer evaluateCheck which returns a structured CheckOutcome.
+ */
+export function processCheckResults(monitor, result, now) {
+  const outcome = evaluateCheck(monitor, result, now);
+  const flat = { ...outcome.monitorUpdates, changed: outcome.changed };
+  if (outcome.historyEntry) flat.historyEntry = outcome.historyEntry;
+  return flat;
 }

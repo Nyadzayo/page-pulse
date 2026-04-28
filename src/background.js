@@ -1,5 +1,5 @@
 import { getMonitors, getSettings, updateMonitor, saveMonitor, appendHistory, getMonitor, getPendingDigest, addPendingDigest, clearPendingDigest } from './lib/storage.js';
-import { filterDueMonitors, groupByUrl, processCheckResults, limitUrlBatch } from './lib/scheduler.js';
+import { filterDueMonitors, groupByUrl, evaluateCheck, limitUrlBatch } from './lib/scheduler.js';
 import { hasOriginAccess, extractOrigin } from './lib/permissions.js';
 import { notifyBatch, updateBadge } from './lib/notifications.js';
 import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, NOTIFY_MODES, RENDER_MODES } from './lib/constants.js';
@@ -177,9 +177,8 @@ async function runTick() {
       } catch {
         for (const m of monitorsForUrl) {
           const result = { monitorId: m.id, text: null, matchedBy: null };
-          const updates = processCheckResults(m, result, now);
-          const { changed, historyEntry, ...storageUpdates } = updates;
-          await updateMonitor(m.id, storageUpdates);
+          const outcome = evaluateCheck(m, result, now);
+          await updateMonitor(m.id, outcome.monitorUpdates);
         }
         continue;
       }
@@ -191,18 +190,17 @@ async function runTick() {
       const monitor = monitorsForUrl.find((m) => m.id === result.monitorId);
       if (!monitor) continue;
 
-      const updates = processCheckResults(monitor, result, now);
+      const outcome = evaluateCheck(monitor, result, now);
 
-      if (updates.changed && updates.historyEntry) {
-        console.log(`[PagePulse] Change detected: "${monitor.label}" — old: "${updates.historyEntry.old?.substring(0, 50)}" → new: "${updates.historyEntry.new?.substring(0, 50)}"`);
-        await appendHistory(monitor.id, updates.historyEntry, settings.tier);
-        changes.push({ monitor, newValue: updates.historyEntry.new });
+      if (outcome.changed && outcome.historyEntry) {
+        console.log(`[PagePulse] Change detected: "${monitor.label}" — old: "${outcome.historyEntry.old?.substring(0, 50)}" → new: "${outcome.historyEntry.new?.substring(0, 50)}"`);
+        await appendHistory(monitor.id, outcome.historyEntry, settings.tier);
+        changes.push({ monitor, newValue: outcome.historyEntry.new });
       } else {
         console.log(`[PagePulse] No change for "${monitor.label}" (matched by: ${result.matchedBy})`);
       }
 
-      const { changed, historyEntry, ...storageUpdates } = updates;
-      await updateMonitor(monitor.id, storageUpdates);
+      await updateMonitor(monitor.id, outcome.monitorUpdates);
     }
   }
 
