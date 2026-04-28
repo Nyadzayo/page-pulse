@@ -43,8 +43,9 @@ export async function notifyBatch(changes, soundEnabled = true) {
     }
   }
 
-  // Update badge
-  updateBadge(changes.length);
+  // Badge is owned by the caller (background.js refreshUnreadBadge) — do
+  // not update here, or per-tick instant counts would clobber the
+  // "total unread across all monitors" semantic.
 
   // Play sound
   if (soundEnabled) {

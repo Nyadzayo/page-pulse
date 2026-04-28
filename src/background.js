@@ -111,10 +111,23 @@ async function offscreenRenderExtract(url, queries) {
 // Legacy path for Chrome <116 or as fallback when offscreen iframe fails.
 async function browserRenderExtract(url, queries) {
   let tabId = null;
+  let windowId = null;
   try {
-    // Create a hidden tab
-    const tab = await chrome.tabs.create({ url, active: false });
-    tabId = tab.id;
+    // Open in a minimized popup window so the user's main tab strip stays
+    // clean. Falls back to a hidden tab if windows.create is unavailable.
+    let win = null;
+    try {
+      win = await chrome.windows.create({ url, focused: false, state: 'minimized', type: 'popup' });
+    } catch (e) {
+      console.warn('[PagePulse] windows.create failed, falling back to inactive tab:', e);
+    }
+    if (win && win.tabs && win.tabs[0]) {
+      windowId = win.id;
+      tabId = win.tabs[0].id;
+    } else {
+      const tab = await chrome.tabs.create({ url, active: false });
+      tabId = tab.id;
+    }
 
     // Wait for the page to fully load
     await new Promise((resolve) => {
@@ -239,8 +252,9 @@ async function browserRenderExtract(url, queries) {
     console.error('[PagePulse] Browser render failed:', e);
     return queries.map(q => ({ monitorId: q.monitorId, text: null, matchedBy: null }));
   } finally {
-    // Always close the tab
-    if (tabId) {
+    if (windowId != null) {
+      try { await chrome.windows.remove(windowId); } catch {}
+    } else if (tabId) {
       try { await chrome.tabs.remove(tabId); } catch {}
     }
   }
@@ -326,7 +340,12 @@ async function runTick() {
       const monitor = monitorsForUrl.find((m) => m.id === result.monitorId);
       if (!monitor) continue;
 
-      const outcome = evaluateCheck(monitor, result, now);
+      // F2 — when the render path returned null text with no matchedBy, treat
+      // it as a check failure (increments consecutiveErrors → BROKEN after 3).
+      // This prevents Twitter/SPA-blocked-iframe ticks from clobbering baseline
+      // with empty strings.
+      const isEmptyExtraction = result.text === null && result.matchedBy === null;
+      const outcome = evaluateCheck(monitor, isEmptyExtraction ? null : result, now);
 
       if (result.matchedBy === 'fingerprint' && result.recoveredSelector) {
         console.log(`[PagePulse] Selector recovered for "${monitor.label}": ${monitor.selector} → ${result.recoveredSelector}`);
@@ -336,6 +355,8 @@ async function runTick() {
       if (outcome.changed && outcome.historyEntry) {
         console.log(`[PagePulse] Change detected: "${monitor.label}" — old: "${outcome.historyEntry.old?.substring(0, 50)}" → new: "${outcome.historyEntry.new?.substring(0, 50)}"`);
         await appendHistory(monitor.id, outcome.historyEntry, settings.tier);
+        // F5A — increment unread counter for sidebar dot + browser-action badge
+        outcome.monitorUpdates.unreadChangeCount = (monitor.unreadChangeCount || 0) + 1;
         changes.push({ monitor, newValue: outcome.historyEntry.new });
       } else {
         console.log(`[PagePulse] No change for "${monitor.label}" (matched by: ${result.matchedBy})`);
@@ -373,10 +394,10 @@ async function runTick() {
         }
       }
 
-      // Update badge with total (instant fires + pending digest count)
-      const pendingCount = (await getPendingDigest()).length;
-      const totalBadge = instantChanges.length + pendingCount;
-      updateBadge(totalBadge);
+      // F5C — badge shows total unread across all monitors, not just this
+      // tick's deltas. Read post-update so newly-incremented counters are
+      // visible.
+      await refreshUnreadBadge();
 
       if (instantChanges.length > 0) {
         // Ensure offscreen is open for sound playback
@@ -502,7 +523,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     handleCheckNow(msg.monitorId).then(sendResponse);
     return true;
   }
+  if (msg.action === 'recompute_badge') {
+    refreshUnreadBadge().then(() => sendResponse({ ok: true }));
+    return true;
+  }
 });
+
+async function refreshUnreadBadge() {
+  try {
+    const monitors = await getMonitors();
+    const total = Object.values(monitors).reduce(
+      (sum, m) => sum + (m.unreadChangeCount || 0),
+      0,
+    );
+    updateBadge(total);
+  } catch (e) {
+    console.error('[PagePulse] refreshUnreadBadge failed:', e);
+  }
+}
 
 async function handleCreateMonitor(data) {
   const settings = await getSettings();

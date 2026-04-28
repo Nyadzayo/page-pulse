@@ -40,11 +40,11 @@ describe('notifications', () => {
       await notifyBatch(changes);
       expect(chrome.notifications.create).toHaveBeenCalledTimes(6); // 5 individual + 1 batch
     });
-    it('updates badge with change count', async () => {
+    it('does not touch the badge — caller owns badge state (refreshUnreadBadge)', async () => {
       const changes = [{ monitor: { id: 'm1', label: 'Test' }, newValue: 'v' }];
       await notifyBatch(changes);
-      expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: '1' });
-      expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ color: '#10B981' });
+      expect(chrome.action.setBadgeText).not.toHaveBeenCalled();
+      expect(chrome.action.setBadgeBackgroundColor).not.toHaveBeenCalled();
     });
   });
 

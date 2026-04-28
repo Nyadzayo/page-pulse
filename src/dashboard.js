@@ -88,11 +88,15 @@ async function loadSidebar() {
       (Date.now() - m.lastChecked > (m.intervalMs || 3600000) * 3) ? 'Stale' :
       (m.consecutiveErrors > 0) ? 'Flaky' : '';
     const pausedTag = !m.active ? '<span class="ds-paused">PAUSED</span>' : '';
+    const unread = m.unreadChangeCount || 0;
+    const unreadDot = unread > 0
+      ? `<span class="ds-unread" title="${unread} new change${unread === 1 ? '' : 's'}"></span>`
+      : '';
     return `
-      <div class="ds-item ${m.id === currentMonitorId ? 'active' : ''}" data-id="${escapeAttr(m.id)}">
+      <div class="ds-item ${m.id === currentMonitorId ? 'active' : ''} ${unread > 0 ? 'has-unread' : ''}" data-id="${escapeAttr(m.id)}">
         <div class="ds-dot ${dotClass}"></div>
         <div class="ds-info">
-          <div class="ds-name">${escapeHtml(m.label)}</div>
+          <div class="ds-name">${unreadDot}${escapeHtml(m.label)}</div>
           <div class="ds-host">${escapeHtml(host)}</div>
           ${healthText ? `<div class="ds-health">${escapeHtml(healthText)}</div>` : ''}
         </div>
@@ -109,13 +113,27 @@ async function selectMonitor(id) {
   const monitor = monitors[id];
   if (!monitor) return;
 
+  // F5A — clear unread counter on view (debounced via storage write).
+  if ((monitor.unreadChangeCount || 0) > 0) {
+    try {
+      await updateMonitor(id, { unreadChangeCount: 0 });
+      monitor.unreadChangeCount = 0;
+      try { chrome.runtime.sendMessage({ action: 'recompute_badge' }, () => void chrome.runtime.lastError); } catch {}
+    } catch {}
+  }
+
   document.getElementById('no-selection').style.display = 'none';
   document.getElementById('monitor-detail').style.display = 'block';
 
-  document.getElementById('detail-label').textContent = monitor.label;
+  const labelEl = document.getElementById('detail-label');
+  labelEl.textContent = monitor.label;
+  labelEl.dataset.monitorId = id;
+
   const urlEl = document.getElementById('detail-url');
-  urlEl.textContent = new URL(monitor.url).hostname + new URL(monitor.url).pathname;
+  const u = new URL(monitor.url);
+  urlEl.textContent = u.hostname + u.pathname;
   urlEl.href = monitor.url;
+  urlEl.title = `Open ${monitor.url} in a new tab`;
 
   // Stats
   const statusEl = document.getElementById('stat-status');
@@ -297,6 +315,50 @@ function setupEventListeners() {
     const item = e.target.closest('.ds-item');
     if (item) selectMonitor(item.dataset.id);
   });
+
+  // F4 — inline rename: click the title to edit, Enter saves, Esc cancels.
+  const labelEl = document.getElementById('detail-label');
+  if (labelEl) {
+    labelEl.addEventListener('click', () => {
+      if (labelEl.isContentEditable) return;
+      labelEl.dataset.original = labelEl.textContent;
+      labelEl.contentEditable = 'true';
+      labelEl.focus();
+      const range = document.createRange();
+      range.selectNodeContents(labelEl);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+    labelEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        labelEl.blur();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        labelEl.textContent = labelEl.dataset.original || '';
+        labelEl.contentEditable = 'false';
+        labelEl.blur();
+      }
+    });
+    labelEl.addEventListener('blur', async () => {
+      if (!labelEl.isContentEditable) return;
+      labelEl.contentEditable = 'false';
+      const newLabel = labelEl.textContent.trim();
+      const id = labelEl.dataset.monitorId;
+      const original = labelEl.dataset.original || '';
+      if (!id || !newLabel || newLabel === original) {
+        if (!newLabel) labelEl.textContent = original;
+        return;
+      }
+      try {
+        await updateMonitor(id, { label: newLabel });
+        await loadSidebar();
+      } catch {
+        labelEl.textContent = original;
+      }
+    });
+  }
 
   document.getElementById('btn-pause')?.addEventListener('click', async () => {
     if (!currentMonitorId) return;
