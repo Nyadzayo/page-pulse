@@ -128,6 +128,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch {}
     });
 
+    // ── Render-mode toggle ──
+    // Persists user's choice in chrome.storage.local under pendingRenderMode.
+    // 'auto' (default) lets background.js detect SPA shells at create time;
+    // 'fetch' / 'browser' override the auto-detection.
+    const renderModeRow = document.getElementById('render-mode-opts');
+    if (renderModeRow) {
+      const stored = await chrome.storage.local.get('pendingRenderMode');
+      const currentMode = stored.pendingRenderMode || 'auto';
+      renderModeRow.querySelectorAll('.popup-render-mode-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.mode === currentMode);
+      });
+      renderModeRow.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.popup-render-mode-btn');
+        if (!btn) return;
+        const mode = btn.dataset.mode;
+        renderModeRow
+          .querySelectorAll('.popup-render-mode-btn')
+          .forEach((b) => b.classList.toggle('active', b === btn));
+        try { await chrome.storage.local.set({ pendingRenderMode: mode }); } catch {}
+      });
+    }
+
     // ── Add Monitor ──
     document.getElementById('btn-add').addEventListener('click', async () => {
       try {

@@ -2,7 +2,27 @@ import { getMonitors, getSettings, updateMonitor, saveMonitor, appendHistory, ge
 import { filterDueMonitors, groupByUrl, processCheckResults, limitUrlBatch } from './lib/scheduler.js';
 import { hasOriginAccess, extractOrigin } from './lib/permissions.js';
 import { notifyBatch, updateBadge } from './lib/notifications.js';
+import { detectSpa } from './lib/spaDetect.js';
 import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, NOTIFY_MODES, RENDER_MODES } from './lib/constants.js';
+
+// Chrome 116+ supports the IFRAME_SCRIPTING reason for chrome.offscreen,
+// which lets us load a URL inside a hidden iframe in the offscreen
+// document — no visible tab needed. Older Chrome falls back to the
+// legacy hidden-tab path implemented below.
+const MIN_CHROME_FOR_IFRAME_SCRIPTING = 116;
+const detectedChromeVersion = (() => {
+  try {
+    const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+    const m = ua.match(/Chrom(?:e|ium)\/(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+  } catch {
+    return 0;
+  }
+})();
+const supportsOffscreenIframe = detectedChromeVersion === 0 || detectedChromeVersion >= MIN_CHROME_FOR_IFRAME_SCRIPTING;
+if (detectedChromeVersion > 0 && !supportsOffscreenIframe) {
+  console.warn(`[PagePulse] Chrome ${detectedChromeVersion} < ${MIN_CHROME_FOR_IFRAME_SCRIPTING}; offscreen iframe rendering unavailable, falling back to hidden-tab render with reduced reliability.`);
+}
 
 // --- Alarm Setup + Context Menu ---
 chrome.runtime.onInstalled.addListener(() => {
@@ -23,15 +43,19 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 // --- Offscreen Document Management ---
-async function ensureOffscreen() {
+async function ensureOffscreen({ withIframe = false } = {}) {
   const contexts = await chrome.runtime.getContexts({
     contextTypes: ['OFFSCREEN_DOCUMENT'],
   });
   if (contexts.length === 0) {
+    const reasons = ['DOM_PARSER', 'AUDIO_PLAYBACK'];
+    if (withIframe && supportsOffscreenIframe) reasons.push('IFRAME_SCRIPTING');
     await chrome.offscreen.createDocument({
       url: 'offscreen.html',
-      reasons: ['DOM_PARSER', 'AUDIO_PLAYBACK'],
-      justification: 'Parse fetched HTML and play notification sounds',
+      reasons,
+      justification: withIframe
+        ? 'Parse fetched HTML, play notification sounds, and render JS-driven SPA pages in a hidden iframe.'
+        : 'Parse fetched HTML and play notification sounds',
     });
   }
 }
@@ -57,7 +81,28 @@ async function queryOffscreen(html, queries) {
   });
 }
 
+// --- Offscreen Iframe Render (Chrome 116+) ---
+// Loads `url` inside a hidden iframe in the offscreen document and
+// extracts text via CSS+XPath. Returns null entries on any failure so
+// callers can fall back to the hidden-tab path.
+async function offscreenRenderExtract(url, queries) {
+  await ensureOffscreen({ withIframe: true });
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { target: 'offscreen', action: 'iframeRender', url, queries },
+      (response) => {
+        void chrome.runtime.lastError;
+        resolve(
+          response?.results ||
+            queries.map((q) => ({ monitorId: q.monitorId, text: null, matchedBy: null })),
+        );
+      },
+    );
+  });
+}
+
 // --- Browser Render: open hidden tab, wait for JS, extract content ---
+// Legacy path for Chrome <116 or as fallback when offscreen iframe fails.
 async function browserRenderExtract(url, queries) {
   let tabId = null;
   try {
@@ -165,8 +210,19 @@ async function runTick() {
     let results;
 
     if (needsBrowser) {
-      // Browser render: open hidden tab, let JS execute, extract content
-      results = await browserRenderExtract(url, queries);
+      // Browser render — prefer offscreen iframe (no visible tab); fall
+      // back to hidden-tab path on Chrome <116 or if offscreen returns
+      // empty results (e.g. iframe blocked by X-Frame-Options).
+      if (supportsOffscreenIframe) {
+        results = await offscreenRenderExtract(url, queries);
+        const allEmpty = results.every((r) => r.text === null);
+        if (allEmpty) {
+          console.warn('[PagePulse] Offscreen iframe render returned empty for', url, '— falling back to hidden tab.');
+          results = await browserRenderExtract(url, queries);
+        }
+      } else {
+        results = await browserRenderExtract(url, queries);
+      }
     } else {
       // Standard fetch: fast, works for static/SSR pages
       let html;
@@ -362,6 +418,30 @@ async function handleCreateMonitor(data) {
     return { success: false, reason: 'limit_reached' };
   }
 
+  // C2: choose render mode. Honour an explicit user override (from
+  // popup's render-mode toggle, persisted in chrome.storage.local under
+  // 'pendingRenderMode'). When the override is 'auto' or absent, run a
+  // quick SPA-shell heuristic on the URL and default to 'browser' when
+  // the page lacks SSR text.
+  let userRenderMode = data.renderMode;
+  if (!userRenderMode) {
+    try {
+      const stored = await chrome.storage.local.get('pendingRenderMode');
+      userRenderMode = stored.pendingRenderMode;
+    } catch {
+      userRenderMode = undefined;
+    }
+  }
+  let renderMode;
+  if (userRenderMode === RENDER_MODES.BROWSER || userRenderMode === RENDER_MODES.FETCH) {
+    renderMode = userRenderMode;
+  } else {
+    renderMode = await chooseRenderMode(data.url);
+  }
+  // One-shot: clear the pending override so it doesn't apply to a later
+  // monitor on a different domain.
+  try { await chrome.storage.local.remove('pendingRenderMode'); } catch {}
+
   const monitor = {
     id: crypto.randomUUID(),
     url: data.url,
@@ -372,6 +452,7 @@ async function handleCreateMonitor(data) {
     label: data.label || `Monitor on ${new URL(data.url).hostname}`,
     baseline: data.baseline,
     intervalMs: limits.minIntervalMs,
+    renderMode,
     lastChecked: null,
     lastChanged: null,
     changeCount: 0,
@@ -384,6 +465,20 @@ async function handleCreateMonitor(data) {
 
   await saveMonitor(monitor);
   return { success: true, monitor };
+}
+
+// Quick fetch + SPA-detect to pick a default renderMode at create time.
+// Falls back to 'fetch' on any network/parse error so we don't silently
+// over-classify pages as SPAs.
+async function chooseRenderMode(url) {
+  try {
+    const response = await fetch(url, { redirect: 'follow' });
+    if (!response.ok) return RENDER_MODES.FETCH;
+    const html = await response.text();
+    return detectSpa(html) ? RENDER_MODES.BROWSER : RENDER_MODES.FETCH;
+  } catch {
+    return RENDER_MODES.FETCH;
+  }
 }
 
 async function handleStartSelection(tabId) {

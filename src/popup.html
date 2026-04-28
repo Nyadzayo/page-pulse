@@ -24,6 +24,15 @@
 
     <div id="monitor-list" class="popup-body"></div>
 
+    <div class="popup-render-mode" id="render-mode-row">
+      <span class="popup-render-mode-label">Render</span>
+      <div class="popup-render-mode-opts" id="render-mode-opts">
+        <button class="popup-render-mode-btn active" data-mode="auto" title="Detect automatically (recommended)">Auto</button>
+        <button class="popup-render-mode-btn" data-mode="fetch" title="Plain HTML fetch (fast, static pages)">Fetch</button>
+        <button class="popup-render-mode-btn" data-mode="browser" title="Hidden iframe (SPAs, JS-rendered)">Browser</button>
+      </div>
+    </div>
+
     <div class="popup-actions">
       <button id="btn-add" class="popup-btn primary">+ Add Monitor</button>
       <button id="btn-dashboard" class="popup-btn secondary">Dashboard</button>
