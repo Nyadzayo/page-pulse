@@ -95,20 +95,21 @@ describe('scheduler', () => {
       expect(updates.status).toBe(STATUS.OK);
     });
 
-    it('marks as broken after threshold errors over 24hr window', () => {
+    it('marks as broken once threshold consecutive errors hit', () => {
       const now = Date.now();
-      const monitor = { id: 'm1', baseline: 'x', status: STATUS.OK, consecutiveErrors: BROKEN_THRESHOLD - 1, firstErrorAt: now - BROKEN_WINDOW_MS - 1000, changeCount: 0 };
+      const monitor = { id: 'm1', baseline: 'x', status: STATUS.OK, consecutiveErrors: BROKEN_THRESHOLD - 1, firstErrorAt: now - 60000, changeCount: 0 };
       const result = { monitorId: 'm1', text: null, matchedBy: null };
       const updates = processCheckResults(monitor, result, now);
       expect(updates.status).toBe(STATUS.BROKEN);
     });
 
-    it('does NOT mark broken if errors within 24hr window', () => {
+    it('stays OK below threshold regardless of how recent the first error is', () => {
       const now = Date.now();
-      const monitor = { id: 'm1', baseline: 'x', status: STATUS.OK, consecutiveErrors: BROKEN_THRESHOLD - 1, firstErrorAt: now - 3600000, changeCount: 0 };
+      const monitor = { id: 'm1', baseline: 'x', status: STATUS.OK, consecutiveErrors: 0, firstErrorAt: null, changeCount: 0 };
       const result = { monitorId: 'm1', text: null, matchedBy: null };
       const updates = processCheckResults(monitor, result, now);
       expect(updates.status).toBe(STATUS.OK);
+      expect(updates.consecutiveErrors).toBe(1);
     });
 
     it('resets errors on successful check', () => {

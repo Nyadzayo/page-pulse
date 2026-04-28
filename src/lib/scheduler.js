@@ -42,9 +42,13 @@ export function limitUrlBatch(urlGroups) {
  */
 export function evaluateCheck(monitor, result, now) {
   if (result.text === null || result.matchedBy === null) {
-    const newErrorCount = monitor.consecutiveErrors + 1;
+    const newErrorCount = (monitor.consecutiveErrors || 0) + 1;
     const firstError = monitor.firstErrorAt || now;
-    const windowExceeded = (now - firstError) > BROKEN_WINDOW_MS;
+    // BROKEN as soon as we hit threshold consecutive errors.
+    // consecutiveErrors already resets to 0 on any success, so a stale-old
+    // firstErrorAt window check would only delay surfacing real failures
+    // (which is what was happening: the `> BROKEN_WINDOW_MS` gate meant a
+    // monitor failing every 5min took 24h to be marked broken).
     const thresholdExceeded = newErrorCount >= BROKEN_THRESHOLD;
     return {
       changed: false,
@@ -53,7 +57,7 @@ export function evaluateCheck(monitor, result, now) {
         lastChecked: now,
         consecutiveErrors: newErrorCount,
         firstErrorAt: firstError,
-        status: (thresholdExceeded && windowExceeded) ? STATUS.BROKEN : STATUS.OK,
+        status: thresholdExceeded ? STATUS.BROKEN : STATUS.OK,
       },
     };
   }

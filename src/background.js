@@ -405,11 +405,6 @@ async function runTick() {
         }
       }
 
-      // F5C — badge shows total unread across all monitors, not just this
-      // tick's deltas. Read post-update so newly-incremented counters are
-      // visible.
-      await refreshUnreadBadge();
-
       if (instantChanges.length > 0) {
         // Ensure offscreen is open for sound playback
         await ensureOffscreen();
@@ -419,6 +414,10 @@ async function runTick() {
         setTimeout(closeOffscreen, 2000);
       }
     }
+    // Always refresh badge after a tick that produced changes — independent
+    // of notifications-enabled and digest/instant split. F5C semantics:
+    // badge tracks total unread, never just per-tick fires.
+    await refreshUnreadBadge();
   } else {
     await closeOffscreen();
   }
@@ -459,6 +458,8 @@ async function runDigest() {
   }
 
   await clearPendingDigest();
+  // Digest fired — keep badge in sync with current unread state.
+  await refreshUnreadBadge();
 
   // Play sound if enabled
   if (settings.soundEnabled !== false) {
@@ -489,8 +490,10 @@ chrome.notifications.onClicked.addListener((notificationId) => {
     chrome.tabs.create({ url: `${dashboardUrl}?monitor=${monitorId}` });
   }
   chrome.notifications.clear(notificationId);
-  // Clear badge when user clicks
-  chrome.action.setBadgeText({ text: '' });
+  // Don't blanket-clear the badge — F5C semantics are "total unread across
+  // all monitors". Selecting the monitor in the dashboard clears that
+  // monitor's unreadChangeCount and triggers refreshUnreadBadge via the
+  // recompute_badge message.
 });
 
 // --- Context Menu Handler ---
