@@ -8,37 +8,58 @@ Track text changes on webpage elements. Get notified when prices drop, jobs post
 
 ## Detailed Description
 
-PagePulse monitors text content on webpage elements and alerts you when it changes.
+PagePulse is a free website change monitor that tracks webpage elements for text changes and alerts you when something changes. Private by default, powerful when you want it, no account needed.
 
-How it works:
-1. Click the PagePulse icon on a page you want to monitor
+HOW IT WORKS
+1. Click the PagePulse icon on any page
 2. Select the element you want to track
-3. Choose how often to check (every 5 minutes to 24 hours)
-4. Get a Chrome notification when something changes
-5. View exactly what changed with smart summaries and highlighted diffs
+3. Choose how often to check (5 minutes to 24 hours)
+4. Get a notification when something changes
+5. View exactly what changed with smart summaries and diffs
 
-Core features:
-- Smart change summaries for list pages (shows new/removed items instead of raw text)
-- Keyword filters — only get notified about changes that match your interests
-- Ignore patterns — filter out timestamps, point counts, and other noise
-- Digest mode — batch notifications into hourly summaries instead of per-change alerts
-- Monitor health dashboard — always know if your monitors are running, with auto-recovery for broken selectors via text fingerprint matching
-- SPA / JavaScript-rendered page support via offscreen iframe rendering (Chrome 116+)
+SMART CHANGE DETECTION
+- Smart summaries for list pages — shows "3 new items, 2 removed" instead of a wall of text
+- Keyword filters — only get notified when changes match your interests
+- Ignore patterns — filter out timestamps, point counts, and other noise with one click
+- Digest mode — batch notifications into hourly summaries instead of constant alerts
+- JS Rendered mode — monitor single-page apps, React sites, and dynamic websites
+- Selector auto-recovery — when a site updates its DOM, PagePulse uses text fingerprint matching to find your element again instead of silently breaking
+- Monitor health dashboard — always know if your monitors are running
+
+GREAT FOR
+- Price drop alerts and restock notifications on any online store
+- Job posting alerts on career pages and job boards
+- Competitor monitoring and content change detection
+- Government and regulatory update tracking
+- API documentation and changelog monitoring
+- News tracking for specific topics on any news site
+
+OPTIONAL POWER FEATURES (off by default, fully opt-in)
+- Webhook actions — fire a JSON POST to Slack, Discord, Zapier, IFTTT, n8n, or any URL on every detected change. No PagePulse middleman.
+- AI change summaries — bring your own API key. Supports Anthropic Claude, NVIDIA's free tier, OpenAI, Groq, OpenRouter, and local Ollama. One-line plain-English explanations of what actually changed. Configurable global and per-monitor instructions.
+- Cross-device sync — opt in to replicate monitor configs across your signed-in Chrome profile via Chrome's built-in encrypted sync. Page content and history stay local on each device.
+
+MORE FEATURES
 - Dark and light themes
-- CSV, JSON, and RSS feed export
+- CSV, JSON, and RSS feed export with full change history
 - Keyboard shortcuts for power users
-- Share monitor configurations with others
+- Copy diffs to clipboard for sharing
+- Share monitor configurations with teammates via link
+- Right-click context menu to start monitoring directly
+- Pause and resume with clear status indicators
+- Notification sound alerts with on/off toggle
+- Inline rename, unread badges, and a compact in-app stats footer
+- First-run onboarding to walk you through your first monitor
 
-Optional integrations (off by default, fully opt-in):
-- Webhook actions — fire a JSON POST to Slack, Discord, Zapier, IFTTT, or any URL on every detected change
-- AI summaries — bring your own API key (Anthropic, NVIDIA free tier, OpenAI, Groq, OpenRouter, or local Ollama) for one-line plain-English explanations of what changed; configurable global and per-monitor instructions
-- Cross-device sync — opt in to replicate monitor configs across your signed-in Chrome profile via chrome.storage.sync (page baselines and history stay local)
+PRIVACY
+Local-first by default. All baseline functionality runs entirely in your browser — PagePulse has no server. No accounts. No tracking. No analytics. Host access is requested per-site only when you create a monitor.
 
-Works well with: Product pages, job listings, news articles, government sites, documentation, SPAs, and most modern websites. Pages that aggressively block iframe embedding (e.g., Twitter/X, LinkedIn) cannot be reliably monitored from the background; PagePulse will surface a "Monitor needs attention" notification when this happens.
+The three optional power features above transmit data only to destinations you choose: Chrome's built-in encrypted Sync (Google), your selected LLM provider with your own API key, and webhook URLs you paste. PagePulse never proxies, intercepts, or stores any of that traffic. Each feature is off until you turn it on.
 
-Privacy: Local-first by default. All baseline functionality runs entirely in your browser; PagePulse has no server. Three optional features may transmit data to destinations you choose: (1) Sync uses Chrome's built-in chrome.storage.sync (Google's encrypted profile sync); (2) AI summaries call the LLM provider you configure with your own API key; (3) Webhooks POST to a URL you supply. None of these features collect data on PagePulse's behalf.
+FREE
+10 monitors, 5-minute checks, 30-day history. All features included. No hidden limits.
 
-Free — 10 monitors, 5-minute checks, 30-day history. All features included.
+Works with static and server-rendered pages out of the box. Use JS Rendered mode for single-page apps and dynamic websites. Sites that aggressively block iframe embedding (e.g., Twitter/X, LinkedIn) cannot be reliably background-monitored — PagePulse will tell you so via the "Monitor needs attention" notification rather than silently failing.
 
 ## Category
 Productivity
