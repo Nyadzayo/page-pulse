@@ -627,6 +627,60 @@ function setupEventListeners() {
     btn.disabled = false;
   });
 
+  // Top-level "Generate AI Summary" — picks the most recent history entry
+  // and calls the LLM with the resolved instruction (per-monitor → global →
+  // built-in default). Surfaces clear errors when AI is not configured or
+  // when there's no history to summarize.
+  document.getElementById('btn-generate-summary')?.addEventListener('click', async () => {
+    if (!currentMonitorId) return;
+    const btn = document.getElementById('btn-generate-summary');
+    const original = btn.innerHTML;
+    const settings = await getSettings();
+    if (!isAiEnabled(settings)) {
+      btn.textContent = 'Configure AI first ↑';
+      btn.disabled = true;
+      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2200);
+      return;
+    }
+    const monitors = await getMonitors();
+    const monitor = monitors[currentMonitorId];
+    const history = await getHistory(currentMonitorId);
+    if (!monitor || history.length === 0) {
+      btn.textContent = 'No changes yet to summarize';
+      btn.disabled = true;
+      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2200);
+      return;
+    }
+    const sorted = history.slice().sort((a, b) => b.ts - a.ts);
+    const entry = sorted[0];
+    btn.disabled = true;
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>Generating…';
+    const effectiveInstruction =
+      (monitor.aiSummaryInstruction || '').trim()
+      || (settings.aiSummaryInstruction || '').trim()
+      || undefined;
+    try {
+      const summary = await summarizeChange(monitor, entry, {
+        provider: settings.aiProvider,
+        apiKey: settings.aiApiKey,
+        apiUrl: settings.aiApiUrl,
+        model: settings.aiModel,
+        instruction: effectiveInstruction,
+      });
+      if (summary) {
+        await updateHistoryEntry(currentMonitorId, entry.ts, { summary });
+        await selectMonitor(currentMonitorId);
+        // selectMonitor re-renders → button is restored to original state.
+      } else {
+        btn.textContent = 'Failed — check API key + permissions';
+        setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2500);
+      }
+    } catch (err) {
+      btn.textContent = `Error: ${(err && err.message) || 'unknown'}`;
+      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2500);
+    }
+  });
+
   // Share button
   document.getElementById('btn-share').addEventListener('click', async () => {
     if (!currentMonitorId) return;

@@ -559,6 +559,18 @@ html, body {
   height: 13px;
 }
 
+.dm-btn-ai {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.18), rgba(168, 85, 247, 0.14)) !important;
+  color: var(--accent, #6366F1) !important;
+  border: 1px solid var(--accent, #6366F1) !important;
+  font-weight: 600;
+}
+.dm-btn-ai:hover:not(:disabled) {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.28), rgba(168, 85, 247, 0.22)) !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.28);
+}
+.dm-btn-ai:disabled { opacity: 0.6; cursor: wait; }
+
 .dm-ai-actions {
   margin: 10px 14px 4px;
   display: flex;
