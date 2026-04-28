@@ -6,6 +6,13 @@ import { makeMonitor } from './lib/monitor.js';
 import { detectSpa } from './lib/spaDetect.js';
 import { shouldFireBrokenNotification } from './lib/selectorRecovery.js';
 import { fireWebhook } from './lib/webhook.js';
+import {
+  SYNC_KEY,
+  extractSyncableConfigs,
+  mergeSyncedConfigs,
+  pushConfigsToSync,
+  pullConfigsFromSync,
+} from './lib/configSync.js';
 import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, NOTIFY_MODES, RENDER_MODES } from './lib/constants.js';
 
 // Chrome 116+ supports the IFRAME_SCRIPTING reason for chrome.offscreen,
@@ -41,12 +48,16 @@ chrome.runtime.onInstalled.addListener(async () => {
 
   // Bring legacy monitors up to the current schema.
   try { await runMigrations(); } catch (e) { console.error('[PagePulse] Migration failed:', e); }
+
+  // Pull synced configs into local on first install / extension reload.
+  try { await pullAndMergeSync(); } catch (e) { console.error('[PagePulse] sync pull failed:', e); }
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
   chrome.alarms.create(DIGEST_ALARM_NAME, { periodInMinutes: 60 });
   try { await runMigrations(); } catch (e) { console.error('[PagePulse] Migration failed:', e); }
+  try { await pullAndMergeSync(); } catch (e) { console.error('[PagePulse] sync pull failed:', e); }
 });
 
 // --- Offscreen Document Management ---
@@ -550,6 +561,49 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'recompute_badge') {
     refreshUnreadBadge().then(() => sendResponse({ ok: true }));
     return true;
+  }
+  if (msg.action === 'sync_now') {
+    maybePushSync().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+});
+
+// Suppression flag to prevent the chrome.storage.onChanged loop:
+// when we apply a sync-induced merge to local, the resulting onChanged
+// on local would otherwise re-push the same data to sync, which would
+// fire onChanged on the OTHER device's sync area, which would merge,
+// which would re-push... ad infinitum.
+let applyingSyncedConfig = false;
+
+async function maybePushSync() {
+  if (applyingSyncedConfig) return;
+  const settings = await getSettings();
+  if (!settings.syncEnabled) return;
+  const monitors = await getMonitors();
+  await pushConfigsToSync(extractSyncableConfigs(monitors));
+}
+
+async function pullAndMergeSync() {
+  const settings = await getSettings();
+  if (!settings.syncEnabled) return;
+  const synced = await pullConfigsFromSync();
+  if (synced.length === 0) return;
+  const local = await getMonitors();
+  const merged = mergeSyncedConfigs(local, synced);
+  applyingSyncedConfig = true;
+  try {
+    await chrome.storage.local.set({ [STORAGE_KEYS.MONITORS]: merged });
+  } finally {
+    applyingSyncedConfig = false;
+  }
+}
+
+chrome.storage.onChanged.addListener(async (changes, area) => {
+  if (area === 'local' && changes[STORAGE_KEYS.MONITORS]) {
+    await maybePushSync();
+  } else if (area === 'sync' && changes[SYNC_KEY]) {
+    await pullAndMergeSync();
+    await refreshUnreadBadge();
   }
 });
 

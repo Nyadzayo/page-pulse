@@ -51,6 +51,7 @@ export const DEFAULT_SETTINGS = {
   tier: TIERS.FREE,
   notificationsEnabled: true,
   soundEnabled: true,
+  syncEnabled: false,
 };
 
 export const DIFF_MODES = {

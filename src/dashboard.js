@@ -7,6 +7,8 @@ import { playChime } from './lib/sound.js';
 
 const soundOnIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
 const soundOffIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
+const syncOnIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
+const syncOffIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
 
 let currentMonitorId = null;
 
@@ -37,6 +39,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Play preview sound when turning on
     if (soundOn) {
       playChimePreview();
+    }
+  });
+
+  // Sync toggle — opt-in chrome.storage.sync of monitor configs.
+  const syncBtn = document.getElementById('btn-sync');
+  let syncOn = settings.syncEnabled === true;
+  syncBtn.innerHTML = syncOn ? syncOnIcon : syncOffIcon;
+  syncBtn.title = syncOn
+    ? 'Sync ON — monitor configs sync via Chrome Sync (history stays local)'
+    : 'Sync OFF — click to enable cross-device monitor config sync';
+  syncBtn.addEventListener('click', async () => {
+    syncOn = !syncOn;
+    await updateSettings({ syncEnabled: syncOn });
+    syncBtn.innerHTML = syncOn ? syncOnIcon : syncOffIcon;
+    syncBtn.title = syncOn
+      ? 'Sync ON — monitor configs sync via Chrome Sync (history stays local)'
+      : 'Sync OFF — click to enable cross-device monitor config sync';
+    // When turning on, immediately push current monitor configs to sync so
+    // other signed-in devices can pull them. The background SW will react
+    // to the same settings change via its onChanged listener, but doing it
+    // here gives instant feedback in the dashboard.
+    if (syncOn) {
+      try {
+        chrome.runtime.sendMessage({ action: 'sync_now' }, () => void chrome.runtime.lastError);
+      } catch {}
     }
   });
 
