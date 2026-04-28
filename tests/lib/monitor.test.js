@@ -40,6 +40,15 @@ describe('makeMonitor factory', () => {
     expect(m.notifyMode).toBe(NOTIFY_MODES.INSTANT);
     expect(m.keywords).toBe('');
     expect(m.ignorePatterns).toBe('');
+    expect(m.webhookUrl).toBe('');
+  });
+
+  it('persists a caller-provided webhookUrl through the factory', () => {
+    const m = makeMonitor(
+      { url: 'https://example.com', selector: '#x', baseline: 'a', webhookUrl: 'https://hooks.slack.com/services/X' },
+      { tier: TIERS.FREE, now: Date.now() },
+    );
+    expect(m.webhookUrl).toBe('https://hooks.slack.com/services/X');
   });
 
   it('honors a caller-provided label', () => {

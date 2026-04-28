@@ -1,5 +1,6 @@
 import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor, updateSettings, saveMonitor } from './lib/storage.js';
 import { computeDiff, generateSummary, matchesKeyword } from './lib/differ.js';
+import { isValidWebhookUrl } from './lib/webhook.js';
 import { INTERVALS, TIER_LIMITS, DIFF_MODES, NOTIFY_MODES, STATUS } from './lib/constants.js';
 import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
 import { playChime } from './lib/sound.js';
@@ -182,6 +183,25 @@ async function selectMonitor(id) {
 
   // Keywords
   document.getElementById('detail-keywords').value = monitor.keywords || '';
+
+  // Webhook URL
+  const webhookEl = document.getElementById('detail-webhook');
+  if (webhookEl) {
+    webhookEl.value = monitor.webhookUrl || '';
+    const statusEl = document.getElementById('detail-webhook-status');
+    if (statusEl) {
+      if (!monitor.webhookUrl) {
+        statusEl.textContent = 'Slack/Discord/Zapier — fires JSON POST on change. Leave empty to skip.';
+        statusEl.style.color = '';
+      } else if (isValidWebhookUrl(monitor.webhookUrl)) {
+        statusEl.textContent = 'Active — will POST on every detected change.';
+        statusEl.style.color = 'var(--success, #10B981)';
+      } else {
+        statusEl.textContent = 'Invalid URL — must start with http:// or https://';
+        statusEl.style.color = '#EF4444';
+      }
+    }
+  }
 
   // Render mode buttons
   const renderMode = monitor.renderMode || 'fetch';
@@ -570,6 +590,31 @@ function setupEventListeners() {
     if (!currentMonitorId) return;
     const value = document.getElementById('detail-ignore').value;
     await updateMonitor(currentMonitorId, { ignorePatterns: value });
+  });
+
+  // Webhook URL — save on blur, validate inline.
+  document.getElementById('detail-webhook')?.addEventListener('blur', async () => {
+    if (!currentMonitorId) return;
+    const el = document.getElementById('detail-webhook');
+    const value = el.value.trim();
+    const statusEl = document.getElementById('detail-webhook-status');
+    if (value && !isValidWebhookUrl(value)) {
+      if (statusEl) {
+        statusEl.textContent = 'Invalid URL — must start with http:// or https://';
+        statusEl.style.color = '#EF4444';
+      }
+      return;
+    }
+    await updateMonitor(currentMonitorId, { webhookUrl: value });
+    if (statusEl) {
+      if (!value) {
+        statusEl.textContent = 'Slack/Discord/Zapier — fires JSON POST on change. Leave empty to skip.';
+        statusEl.style.color = '';
+      } else {
+        statusEl.textContent = 'Active — will POST on every detected change.';
+        statusEl.style.color = 'var(--success, #10B981)';
+      }
+    }
   });
 
   // Preset buttons — append pattern to ignore textarea

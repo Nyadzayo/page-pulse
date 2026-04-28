@@ -105,6 +105,13 @@
               <span class="dm-setting-hint">Only notify when change contains these words</span>
             </div>
             <div class="dm-setting" style="align-items:flex-start;">
+              <label class="dm-setting-label" style="padding-top:8px;">Webhook</label>
+              <div style="flex:1;">
+                <input id="detail-webhook" type="url" class="dm-setting-input" placeholder="https://hooks.slack.com/... or Discord/Zapier URL">
+                <span id="detail-webhook-status" class="dm-setting-hint">Slack/Discord/Zapier — fires JSON POST on change. Leave empty to skip.</span>
+              </div>
+            </div>
+            <div class="dm-setting" style="align-items:flex-start;">
               <label class="dm-setting-label" style="padding-top:8px;">Ignore</label>
               <div style="flex:1;">
                 <textarea id="detail-ignore" class="dm-setting-input" rows="3" placeholder="Regex patterns to ignore (one per line)&#10;e.g. \d+ (minutes?|hours?) ago&#10;\d+ points?" style="resize:vertical;font-size:11px;line-height:1.5;"></textarea>

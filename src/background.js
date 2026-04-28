@@ -5,6 +5,7 @@ import { notifyBatch, updateBadge, createBrokenMonitorNotification } from './lib
 import { makeMonitor } from './lib/monitor.js';
 import { detectSpa } from './lib/spaDetect.js';
 import { shouldFireBrokenNotification } from './lib/selectorRecovery.js';
+import { fireWebhook } from './lib/webhook.js';
 import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, NOTIFY_MODES, RENDER_MODES } from './lib/constants.js';
 
 // Chrome 116+ supports the IFRAME_SCRIPTING reason for chrome.offscreen,
@@ -369,6 +370,15 @@ async function runTick() {
         // F5A — increment unread counter for sidebar dot + browser-action badge
         outcome.monitorUpdates.unreadChangeCount = (monitor.unreadChangeCount || 0) + 1;
         changes.push({ monitor, newValue: outcome.historyEntry.new });
+        // Path A — fire user-configured webhook (Slack/Discord/Zapier/etc.)
+        // off the change event. Best-effort, no retries; failures logged
+        // but don't affect the rest of the tick.
+        if (monitor.webhookUrl) {
+          fireWebhook(monitor.webhookUrl, monitor, outcome.historyEntry)
+            .then((ok) => {
+              if (!ok) console.warn(`[PagePulse] Webhook failed for "${monitor.label}"`);
+            });
+        }
       } else {
         console.log(`[PagePulse] No change for "${monitor.label}" (matched by: ${result.matchedBy})`);
       }
