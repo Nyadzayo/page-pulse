@@ -1,7 +1,7 @@
-import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor, updateSettings, saveMonitor } from './lib/storage.js';
+import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor, updateSettings, saveMonitor, updateHistoryEntry } from './lib/storage.js';
 import { computeDiff, generateSummary, matchesKeyword } from './lib/differ.js';
 import { isValidWebhookUrl } from './lib/webhook.js';
-import { PROVIDER_PRESETS } from './lib/aiSummary.js';
+import { PROVIDER_PRESETS, summarizeChange, isAiEnabled } from './lib/aiSummary.js';
 import { buildRssFeed, monitorToFeedItems } from './lib/rssFeed.js';
 import { INTERVALS, TIER_LIMITS, DIFF_MODES, NOTIFY_MODES, STATUS } from './lib/constants.js';
 import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
@@ -115,6 +115,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   aiBtn.title = aiOn ? 'AI summaries ON' : 'AI summaries OFF — click to configure';
 
   function openAiDialog(currentSettings) {
+    // Reset any error state from a previous open.
+    aiPresetNotes.style.color = '';
     // Pick a preset matching the saved URL, or default to NVIDIA (free tier).
     let matchedId = 'nvidia';
     if (currentSettings.aiApiUrl) {
@@ -225,6 +227,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     aiBtn.title = 'AI summaries ON';
     aiPresetNotes.style.color = '';
     aiDialog.close();
+    // Refresh the current monitor view so any "Generate summary" buttons
+    // become reachable / state reflects the now-enabled AI feature.
+    if (currentMonitorId) await selectMonitor(currentMonitorId);
   });
 
   await loadSidebar();
@@ -489,6 +494,8 @@ function renderHistoryEntry(entry, diffMode, idx) {
   let bodyHtml = '';
   if (entry.summary) {
     bodyHtml += `<div class="dm-ai-summary" title="AI-generated summary"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg> ${escapeHtml(entry.summary)}</div>`;
+  } else {
+    bodyHtml += `<div class="dm-ai-actions"><button class="dm-ai-gen-btn" data-ts="${escapeAttr(entry.ts)}" title="Generate AI summary for this change"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg> Generate summary</button></div>`;
   }
   if (diffMode === DIFF_MODES.SUMMARY) {
     bodyHtml += renderSummaryHtml(entry);
@@ -773,6 +780,48 @@ function setupEventListeners() {
       if (collapsible) {
         const isOpen = collapsible.classList.toggle('open');
         toggleBtn.textContent = isOpen ? 'Hide detailed diff' : 'Show detailed diff';
+      }
+      return;
+    }
+
+    // Handle on-demand AI summary generation
+    const genBtn = e.target.closest('.dm-ai-gen-btn');
+    if (genBtn) {
+      if (!currentMonitorId) return;
+      const ts = Number(genBtn.dataset.ts);
+      const settings = await getSettings();
+      if (!isAiEnabled(settings)) {
+        genBtn.textContent = 'AI not configured — click sparkle icon';
+        setTimeout(() => { selectMonitor(currentMonitorId); }, 1800);
+        return;
+      }
+      const monitors = await getMonitors();
+      const monitor = monitors[currentMonitorId];
+      const history = await getHistory(currentMonitorId);
+      const entry = history.find((h) => h.ts === ts);
+      if (!monitor || !entry) return;
+      const original = genBtn.innerHTML;
+      genBtn.disabled = true;
+      genBtn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg> Generating…';
+      try {
+        const summary = await summarizeChange(monitor, entry, {
+          provider: settings.aiProvider,
+          apiKey: settings.aiApiKey,
+          apiUrl: settings.aiApiUrl,
+          model: settings.aiModel,
+        });
+        if (summary) {
+          await updateHistoryEntry(currentMonitorId, ts, { summary });
+          await selectMonitor(currentMonitorId);
+        } else {
+          genBtn.innerHTML = original;
+          genBtn.disabled = false;
+          genBtn.title = 'Failed — check API key, URL, and host permission';
+        }
+      } catch (err) {
+        genBtn.innerHTML = original;
+        genBtn.disabled = false;
+        genBtn.title = `Error: ${err.message || err}`;
       }
     }
   });

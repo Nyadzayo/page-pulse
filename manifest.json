@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PagePulse — Website Change Monitor",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Track text changes on webpage elements. Get notified when prices drop, jobs post, or content updates.",
   "permissions": [
     "alarms",

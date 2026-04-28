@@ -56,6 +56,19 @@ export class MonitorStore {
     const pruned = history.filter((e) => e.ts >= cutoff);
     await chrome.storage.local.set({ [key]: pruned });
   }
+
+  async updateHistoryEntry(monitorId, ts, patch) {
+    const key = STORAGE_KEYS.HISTORY_PREFIX + monitorId;
+    const result = await chrome.storage.local.get(key);
+    const history = result[key];
+    if (!Array.isArray(history)) return false;
+    const idx = history.findIndex((e) => e.ts === ts);
+    if (idx === -1) return false;
+    const { ts: _ignored, ...safePatch } = patch || {};
+    history[idx] = { ...history[idx], ...safePatch };
+    await chrome.storage.local.set({ [key]: history });
+    return true;
+  }
 }
 
 const defaultStore = new MonitorStore();
@@ -82,6 +95,10 @@ export async function deleteMonitor(id) {
 
 export async function getHistory(monitorId) {
   return defaultStore.getHistory(monitorId);
+}
+
+export async function updateHistoryEntry(monitorId, ts, patch) {
+  return defaultStore.updateHistoryEntry(monitorId, ts, patch);
 }
 
 export async function appendHistory(monitorId, entry, tier) {
