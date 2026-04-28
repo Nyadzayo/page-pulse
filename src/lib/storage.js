@@ -1,4 +1,5 @@
 import { STORAGE_KEYS, DEFAULT_SETTINGS, TIER_LIMITS } from './constants.js';
+import { migrateMonitor } from './monitor.js';
 
 /**
  * MonitorStore consolidates monitor and history storage operations into a
@@ -110,4 +111,32 @@ export async function addPendingDigest(entry) {
 
 export async function clearPendingDigest() {
   await chrome.storage.local.set({ pendingDigest: [] });
+}
+
+/**
+ * Walk all stored monitors and bring them up to the current schema by
+ * filling missing fields with defaults. Idempotent. Should be called from
+ * chrome.runtime.onInstalled and chrome.runtime.onStartup so that legacy
+ * monitors persisted by older versions of the extension acquire any
+ * fields introduced since their creation (renderMode, notifyMode,
+ * keywords, ignorePatterns, origin, ...).
+ */
+export async function runMigrations() {
+  const monitors = await defaultStore.list();
+  const ids = Object.keys(monitors);
+  if (ids.length === 0) return;
+  const migrated = {};
+  let dirty = false;
+  for (const id of ids) {
+    const before = monitors[id];
+    const after = migrateMonitor(before);
+    migrated[id] = after;
+    // Cheap shallow check: if any default-key was missing, the merged object
+    // gains keys and is therefore "dirty". Object.keys length comparison is
+    // a reliable proxy because migrateMonitor only adds keys, never removes.
+    if (Object.keys(after).length !== Object.keys(before).length) dirty = true;
+  }
+  if (dirty) {
+    await chrome.storage.local.set({ [STORAGE_KEYS.MONITORS]: migrated });
+  }
 }

@@ -1,11 +1,12 @@
-import { getMonitors, getSettings, updateMonitor, saveMonitor, appendHistory, getMonitor, getPendingDigest, addPendingDigest, clearPendingDigest } from './lib/storage.js';
+import { getMonitors, getSettings, updateMonitor, saveMonitor, appendHistory, getMonitor, getPendingDigest, addPendingDigest, clearPendingDigest, runMigrations } from './lib/storage.js';
 import { filterDueMonitors, groupByUrl, evaluateCheck, limitUrlBatch } from './lib/scheduler.js';
 import { hasOriginAccess, extractOrigin } from './lib/permissions.js';
 import { notifyBatch, updateBadge } from './lib/notifications.js';
+import { makeMonitor } from './lib/monitor.js';
 import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, NOTIFY_MODES, RENDER_MODES } from './lib/constants.js';
 
 // --- Alarm Setup + Context Menu ---
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async () => {
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
   chrome.alarms.create(DIGEST_ALARM_NAME, { periodInMinutes: 60 });
 
@@ -15,11 +16,15 @@ chrome.runtime.onInstalled.addListener(() => {
     title: 'Monitor this element with PagePulse',
     contexts: ['all'],
   });
+
+  // Bring legacy monitors up to the current schema.
+  try { await runMigrations(); } catch (e) { console.error('[PagePulse] Migration failed:', e); }
 });
 
-chrome.runtime.onStartup.addListener(() => {
+chrome.runtime.onStartup.addListener(async () => {
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
   chrome.alarms.create(DIGEST_ALARM_NAME, { periodInMinutes: 60 });
+  try { await runMigrations(); } catch (e) { console.error('[PagePulse] Migration failed:', e); }
 });
 
 // --- Offscreen Document Management ---
@@ -360,26 +365,7 @@ async function handleCreateMonitor(data) {
     return { success: false, reason: 'limit_reached' };
   }
 
-  const monitor = {
-    id: crypto.randomUUID(),
-    url: data.url,
-    origin: extractOrigin(data.url),
-    selector: data.selector,
-    xpath: data.xpath,
-    textFingerprint: data.textFingerprint,
-    label: data.label || `Monitor on ${new URL(data.url).hostname}`,
-    baseline: data.baseline,
-    intervalMs: limits.minIntervalMs,
-    lastChecked: null,
-    lastChanged: null,
-    changeCount: 0,
-    status: STATUS.OK,
-    consecutiveErrors: 0,
-    firstErrorAt: null,
-    active: true,
-    createdAt: Date.now(),
-  };
-
+  const monitor = makeMonitor(data, { tier: settings.tier, now: Date.now() });
   await saveMonitor(monitor);
   return { success: true, monitor };
 }
