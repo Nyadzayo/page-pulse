@@ -169,17 +169,19 @@ document.addEventListener('DOMContentLoaded', async () => {
           return;
         }
 
-        // Request permission (requires user gesture — this IS a click handler)
-        const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
-        if (granted) {
-          // After permission dialog, popup context may be stale
-          // Use background to inject — it's always alive
-          chrome.runtime.sendMessage(
-            { action: 'startSelection', tabId: tab.id },
-            () => void chrome.runtime.lastError
-          );
-          setTimeout(() => window.close(), 150);
-        }
+        // The permission dialog steals focus and Chrome will close the popup,
+        // killing this JS context — anything after the await may not run.
+        // Stash a pending-selection intent in storage and let the service
+        // worker pick it up via chrome.permissions.onAdded once granted.
+        await chrome.storage.local.set({
+          pendingSelection: { tabId: tab.id, origin, ts: Date.now() },
+        });
+
+        // Fire the request without awaiting — popup may already be gone by
+        // the time it resolves, but the onAdded listener handles the rest.
+        chrome.permissions.request({ origins: [`${origin}/*`] }, () => {
+          void chrome.runtime.lastError;
+        });
       } catch {}
     });
 

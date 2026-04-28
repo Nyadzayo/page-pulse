@@ -609,6 +609,37 @@ async function handleStartSelection(tabId) {
   return { success: true };
 }
 
+// When the user accepts a host-permission prompt for a domain we have a
+// pending selection on, inject the selector overlay automatically — the
+// popup that started the flow has already been closed by Chrome (the
+// permission dialog steals focus), so we can't rely on it to do this.
+const PENDING_SELECTION_TTL_MS = 30000;
+chrome.permissions.onAdded.addListener(async (perms) => {
+  try {
+    const stored = await chrome.storage.local.get('pendingSelection');
+    const pending = stored.pendingSelection;
+    if (!pending) return;
+    if (Date.now() - pending.ts > PENDING_SELECTION_TTL_MS) {
+      await chrome.storage.local.remove('pendingSelection');
+      return;
+    }
+    const grantedOrigins = (perms && perms.origins) || [];
+    const matches = grantedOrigins.some((o) => o.startsWith(`${pending.origin}/`));
+    if (!matches) return;
+    await chrome.storage.local.remove('pendingSelection');
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: pending.tabId },
+        files: ['content.js'],
+      });
+    } catch (e) {
+      console.error('[PagePulse] Auto-start selection after permission grant failed:', e);
+    }
+  } catch (e) {
+    console.error('[PagePulse] permissions.onAdded handler failed:', e);
+  }
+});
+
 async function handleCheckNow(monitorId) {
   const monitor = await getMonitor(monitorId);
   if (!monitor) return { success: false, reason: 'not_found' };
