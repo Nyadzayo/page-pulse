@@ -6,6 +6,7 @@ import { makeMonitor } from './lib/monitor.js';
 import { detectSpa } from './lib/spaDetect.js';
 import { shouldFireBrokenNotification } from './lib/selectorRecovery.js';
 import { fireWebhook } from './lib/webhook.js';
+import { summarizeChange, isAiEnabled } from './lib/aiSummary.js';
 import {
   SYNC_KEY,
   extractSyncableConfigs,
@@ -377,6 +378,25 @@ async function runTick() {
 
       if (outcome.changed && outcome.historyEntry) {
         console.log(`[PagePulse] Change detected: "${monitor.label}" — old: "${outcome.historyEntry.old?.substring(0, 50)}" → new: "${outcome.historyEntry.new?.substring(0, 50)}"`);
+
+        // Path A — optional AI summary via the user's own LLM provider
+        // (Anthropic / NVIDIA / OpenAI / Groq / OpenRouter / local Ollama).
+        // Key + URL are stored in chrome.storage.local; never transmitted
+        // through any PagePulse infrastructure.
+        if (isAiEnabled(settings)) {
+          try {
+            const summary = await summarizeChange(monitor, outcome.historyEntry, {
+              provider: settings.aiProvider,
+              apiKey: settings.aiApiKey,
+              apiUrl: settings.aiApiUrl,
+              model: settings.aiModel,
+            });
+            if (summary) outcome.historyEntry.summary = summary;
+          } catch (e) {
+            console.warn('[PagePulse] AI summary failed:', e?.message || e);
+          }
+        }
+
         await appendHistory(monitor.id, outcome.historyEntry, settings.tier);
         // F5A — increment unread counter for sidebar dot + browser-action badge
         outcome.monitorUpdates.unreadChangeCount = (monitor.unreadChangeCount || 0) + 1;

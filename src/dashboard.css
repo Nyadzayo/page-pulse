@@ -531,6 +531,39 @@ html, body {
   word-break: break-all;
 }
 
+.dm-ai-summary {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.06));
+  border-left: 3px solid var(--accent, #6366F1);
+  margin: 8px 14px 0;
+  padding: 8px 10px 8px 12px;
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.dm-ai-summary svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--accent, #6366F1);
+}
+
+.dm-dialog {
+  border: none;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 420px;
+  background: var(--bg-surface, #1a1a1a);
+  color: var(--text-primary);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+.dm-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
 .dm-url::after {
   content: ' ↗';
   font-family: var(--font-display, sans-serif);

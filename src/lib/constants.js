@@ -52,6 +52,11 @@ export const DEFAULT_SETTINGS = {
   notificationsEnabled: true,
   soundEnabled: true,
   syncEnabled: false,
+  aiSummaryEnabled: false,
+  aiProvider: 'openai_compatible',
+  aiApiKey: '',
+  aiApiUrl: '',
+  aiModel: '',
 };
 
 export const DIFF_MODES = {

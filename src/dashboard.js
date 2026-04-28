@@ -1,6 +1,7 @@
 import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor, updateSettings, saveMonitor } from './lib/storage.js';
 import { computeDiff, generateSummary, matchesKeyword } from './lib/differ.js';
 import { isValidWebhookUrl } from './lib/webhook.js';
+import { PROVIDER_PRESETS } from './lib/aiSummary.js';
 import { INTERVALS, TIER_LIMITS, DIFF_MODES, NOTIFY_MODES, STATUS } from './lib/constants.js';
 import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
 import { playChime } from './lib/sound.js';
@@ -9,6 +10,8 @@ const soundOnIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const soundOffIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
 const syncOnIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
 const syncOffIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+const aiOnIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>';
+const aiOffIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.45"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>';
 
 let currentMonitorId = null;
 
@@ -65,6 +68,114 @@ document.addEventListener('DOMContentLoaded', async () => {
         chrome.runtime.sendMessage({ action: 'sync_now' }, () => void chrome.runtime.lastError);
       } catch {}
     }
+  });
+
+  // AI summaries toggle — opens config dialog when not yet enabled.
+  const aiBtn = document.getElementById('btn-ai');
+  const aiDialog = document.getElementById('ai-key-dialog');
+  const aiKeyInput = document.getElementById('ai-key-input');
+  const aiUrlInput = document.getElementById('ai-url-input');
+  const aiModelInput = document.getElementById('ai-model-input');
+  const aiPresetSelect = document.getElementById('ai-preset-select');
+  const aiPresetNotes = document.getElementById('ai-preset-notes');
+
+  // Populate preset dropdown from PROVIDER_PRESETS.
+  if (aiPresetSelect && aiPresetSelect.options.length === 0) {
+    for (const p of PROVIDER_PRESETS) {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.label;
+      aiPresetSelect.appendChild(opt);
+    }
+    const customOpt = document.createElement('option');
+    customOpt.value = '__custom__';
+    customOpt.textContent = 'Custom…';
+    aiPresetSelect.appendChild(customOpt);
+  }
+
+  function applyPreset(presetId) {
+    if (presetId === '__custom__') {
+      aiPresetNotes.textContent = 'Any OpenAI-compatible endpoint works (NVIDIA NIM, vLLM, LM Studio, etc.).';
+      return;
+    }
+    const preset = PROVIDER_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+    aiUrlInput.value = preset.apiUrl;
+    aiModelInput.value = preset.model;
+    aiKeyInput.placeholder = preset.keyHint;
+    aiPresetNotes.textContent = preset.notes;
+    aiPresetSelect.dataset.provider = preset.provider;
+  }
+
+  aiPresetSelect?.addEventListener('change', (e) => applyPreset(e.target.value));
+
+  let aiOn = settings.aiSummaryEnabled === true && Boolean(settings.aiApiKey);
+  aiBtn.innerHTML = aiOn ? aiOnIcon : aiOffIcon;
+  aiBtn.title = aiOn ? 'AI summaries ON' : 'AI summaries OFF — click to configure';
+
+  function openAiDialog(currentSettings) {
+    // Pick a preset matching the saved URL, or default to NVIDIA (free tier).
+    let matchedId = 'nvidia';
+    if (currentSettings.aiApiUrl) {
+      const match = PROVIDER_PRESETS.find((p) => p.apiUrl === currentSettings.aiApiUrl);
+      matchedId = match ? match.id : '__custom__';
+    }
+    aiPresetSelect.value = matchedId;
+    applyPreset(matchedId);
+    if (currentSettings.aiApiUrl) aiUrlInput.value = currentSettings.aiApiUrl;
+    if (currentSettings.aiModel) aiModelInput.value = currentSettings.aiModel;
+    aiKeyInput.value = currentSettings.aiApiKey || '';
+    aiDialog.showModal();
+    aiKeyInput.focus();
+  }
+
+  aiBtn.addEventListener('click', async () => {
+    const current = await getSettings();
+    if (aiOn) {
+      await updateSettings({ aiSummaryEnabled: false });
+      aiOn = false;
+      aiBtn.innerHTML = aiOffIcon;
+      aiBtn.title = 'AI summaries OFF — click to enable again';
+      return;
+    }
+    if (current.aiApiKey && current.aiApiUrl && current.aiModel) {
+      await updateSettings({ aiSummaryEnabled: true });
+      aiOn = true;
+      aiBtn.innerHTML = aiOnIcon;
+      aiBtn.title = 'AI summaries ON';
+      return;
+    }
+    openAiDialog(current);
+  });
+
+  document.getElementById('ai-key-cancel')?.addEventListener('click', () => aiDialog.close());
+  document.getElementById('ai-key-save')?.addEventListener('click', async () => {
+    const key = aiKeyInput.value.trim();
+    const url = aiUrlInput.value.trim();
+    const model = aiModelInput.value.trim();
+    if (!key || !url || !model) {
+      if (!key) aiKeyInput.focus();
+      else if (!url) aiUrlInput.focus();
+      else aiModelInput.focus();
+      return;
+    }
+    const presetId = aiPresetSelect.value;
+    let provider = aiPresetSelect.dataset.provider;
+    if (presetId === '__custom__' || !provider) {
+      // Heuristic: anthropic.com → anthropic, otherwise openai_compatible.
+      provider = url.includes('anthropic.com') ? 'anthropic' : 'openai_compatible';
+    }
+    await updateSettings({
+      aiSummaryEnabled: true,
+      aiProvider: provider,
+      aiApiKey: key,
+      aiApiUrl: url,
+      aiModel: model,
+    });
+    aiOn = true;
+    aiBtn.innerHTML = aiOnIcon;
+    aiBtn.title = 'AI summaries ON';
+    aiDialog.close();
   });
 
   await loadSidebar();
@@ -327,14 +438,17 @@ function renderDetailedHtml(entry) {
 
 function renderHistoryEntry(entry, diffMode, idx) {
   let bodyHtml = '';
+  if (entry.summary) {
+    bodyHtml += `<div class="dm-ai-summary" title="AI-generated summary"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg> ${escapeHtml(entry.summary)}</div>`;
+  }
   if (diffMode === DIFF_MODES.SUMMARY) {
-    bodyHtml = renderSummaryHtml(entry);
+    bodyHtml += renderSummaryHtml(entry);
   } else if (diffMode === DIFF_MODES.DETAILED) {
-    bodyHtml = renderDetailedHtml(entry);
+    bodyHtml += renderDetailedHtml(entry);
   } else {
     // BOTH: summary at top, expandable detailed diff below
     const uid = 'detail-' + idx;
-    bodyHtml = renderSummaryHtml(entry);
+    bodyHtml += renderSummaryHtml(entry);
     bodyHtml += `<div style="padding:0 14px 10px;">
       <button class="dm-detail-toggle" data-target="${escapeAttr(uid)}">Show detailed diff</button>
       <div id="${escapeAttr(uid)}" class="dm-detail-collapsible">${renderDetailedHtml(entry)}</div>
