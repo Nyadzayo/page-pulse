@@ -17,22 +17,26 @@ How it works:
 4. Get a Chrome notification when something changes
 5. View exactly what changed with smart summaries and highlighted diffs
 
-Features:
+Core features:
 - Smart change summaries for list pages (shows new/removed items instead of raw text)
 - Keyword filters — only get notified about changes that match your interests
 - Ignore patterns — filter out timestamps, point counts, and other noise
 - Digest mode — batch notifications into hourly summaries instead of per-change alerts
-- Monitor health dashboard — always know if your monitors are running
+- Monitor health dashboard — always know if your monitors are running, with auto-recovery for broken selectors via text fingerprint matching
+- SPA / JavaScript-rendered page support via offscreen iframe rendering (Chrome 116+)
 - Dark and light themes
-- CSV and JSON export
+- CSV, JSON, and RSS feed export
 - Keyboard shortcuts for power users
 - Share monitor configurations with others
 
-Works well with: Product pages, job listings, news articles, government sites, documentation, and other pages that serve content in their HTML.
+Optional integrations (off by default, fully opt-in):
+- Webhook actions — fire a JSON POST to Slack, Discord, Zapier, IFTTT, or any URL on every detected change
+- AI summaries — bring your own API key (Anthropic, NVIDIA free tier, OpenAI, Groq, OpenRouter, or local Ollama) for one-line plain-English explanations of what changed; configurable global and per-monitor instructions
+- Cross-device sync — opt in to replicate monitor configs across your signed-in Chrome profile via chrome.storage.sync (page baselines and history stay local)
 
-Not yet supported: Pages that load content entirely via JavaScript (single-page apps) or pages that require login.
+Works well with: Product pages, job listings, news articles, government sites, documentation, SPAs, and most modern websites. Pages that aggressively block iframe embedding (e.g., Twitter/X, LinkedIn) cannot be reliably monitored from the background; PagePulse will surface a "Monitor needs attention" notification when this happens.
 
-Privacy: All data stays on your device. No tracking, no analytics, no accounts, no servers. Host access is requested per-site only when you create a monitor.
+Privacy: Local-first by default. All baseline functionality runs entirely in your browser; PagePulse has no server. Three optional features may transmit data to destinations you choose: (1) Sync uses Chrome's built-in chrome.storage.sync (Google's encrypted profile sync); (2) AI summaries call the LLM provider you configure with your own API key; (3) Webhooks POST to a URL you supply. None of these features collect data on PagePulse's behalf.
 
 Free — 10 monitors, 5-minute checks, 30-day history. All features included.
 

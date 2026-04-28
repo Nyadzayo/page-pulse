@@ -27,11 +27,11 @@
 <body>
 
 <h1>PagePulse Privacy Policy</h1>
-<p class="subtitle">Effective date: March 24, 2026 &middot; Last updated: March 24, 2026</p>
+<p class="subtitle">Effective date: April 28, 2026 &middot; Last updated: April 28, 2026 (v1.3 — adds opt-in features)</p>
 
 <div class="badge">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-  All your data stays on your device. Nothing is sent to any server.
+  Local-first by default. Three opt-in features (Sync, AI summaries, Webhooks) explicitly transmit data — described below.
 </div>
 
 <h2>1. What We Collect</h2>
@@ -52,9 +52,9 @@
   <li>Analytics, telemetry, or usage tracking data</li>
   <li>Financial or payment information</li>
   <li>Location data</li>
-  <li>Any data to external servers, APIs, or cloud services</li>
+  <li>Any data to external servers, APIs, or cloud services operated by PagePulse</li>
 </ul>
-<p><strong>There is no server component.</strong> PagePulse operates entirely within your browser. No data ever leaves your device.</p>
+<p><strong>PagePulse has no server component of its own.</strong> All baseline functionality runs entirely within your browser. The optional features described in section 5 (AI summaries, Webhooks, cross-device Sync) connect your browser directly to destinations you explicitly configure — PagePulse never proxies, intercepts, or stores those communications.</p>
 
 <h2>3. Permissions Explained</h2>
 <p>PagePulse requests the following Chrome permissions, each for a specific and necessary purpose:</p>
@@ -72,18 +72,33 @@
 
 <h2>4. How Your Data Is Stored</h2>
 <ul>
-  <li><strong>Location:</strong> All data is stored in <code>chrome.storage.local</code>, which resides on your device only.</li>
+  <li><strong>Default location:</strong> All data is stored in <code>chrome.storage.local</code>, which resides on your device only.</li>
   <li><strong>Encryption:</strong> Data is protected by Chrome's built-in storage security and your operating system's user-level access controls.</li>
   <li><strong>Retention:</strong> Change history is automatically pruned after 30 days. Monitor configurations persist until you delete them. All data is removed when you uninstall the extension.</li>
-  <li><strong>No cloud sync:</strong> Monitor data is not synced across devices.</li>
+  <li><strong>Optional cross-device sync:</strong> If you turn on the <em>Sync</em> toggle in the dashboard header, monitor configurations (URL, selector, label, intervals, render mode, keywords, ignore patterns, webhook URL, notification mode, active state) are written to <code>chrome.storage.sync</code>. This API is provided by Google Chrome and replicates encrypted data across devices signed in to your Chrome profile via Google&rsquo;s sync infrastructure. Page baselines, change history, AI keys, AI prompts, and AI usage NEVER sync &mdash; they remain in <code>chrome.storage.local</code>. Sync is off by default.</li>
 </ul>
 
-<h2>5. Third-Party Services</h2>
-<p>The current version of PagePulse does <strong>not</strong> use any third-party services, APIs, SDKs, or analytics platforms.</p>
-<p>When PagePulse fetches a webpage you've chosen to monitor, it makes a standard HTTP request directly from your browser to that website. This is the same as if you visited the page yourself.</p>
+<h2>5. Optional Outbound Features (Opt-In)</h2>
+<p>Three features in PagePulse, all <strong>off by default</strong> and individually opt-in, transmit data to destinations <em>you</em> choose. PagePulse never operates a server; these features connect your browser directly to third parties of your choosing.</p>
+
+<h3>5.1 AI summaries (off by default)</h3>
+<p>If you enable AI summaries in the dashboard and provide your own API key, PagePulse calls the LLM provider <strong>you</strong> select &mdash; Anthropic, NVIDIA, OpenAI, Groq, OpenRouter, a local Ollama instance, or any custom OpenAI-compatible endpoint. The HTTP request goes from your browser directly to that endpoint with your key in the auth header. The request body contains:</p>
+<ul>
+  <li>The monitor label you assigned (e.g. "Job postings").</li>
+  <li>The detected change &mdash; both the old and new text from the monitored element (truncated to 800 characters each).</li>
+  <li>An instruction string &mdash; the built-in default unless you set a global or per-monitor override in settings.</li>
+</ul>
+<p>The LLM provider receives this content and may store, log, or use it according to <strong>their</strong> terms of service. You agree to those terms when you provide them with your API key. PagePulse never sees the request, the response, or your key. The user&rsquo;s key is stored in <code>chrome.storage.local</code> only and is explicitly excluded from <code>chrome.storage.sync</code>.</p>
+<p>Network requests fire only when you click "Generate AI Summary" &mdash; never automatically.</p>
+
+<h3>5.2 Webhook actions (off by default, per-monitor)</h3>
+<p>If you fill the Webhook field on any monitor, PagePulse fires an HTTP POST to that URL whenever the monitor detects a change. The request body is JSON containing the monitor id, label, URL, the change&rsquo;s old and new text, and the timestamp. Typical destinations are Slack incoming webhooks, Discord webhooks, Zapier catch-hooks, IFTTT, n8n, or your own server. Whatever service you point the webhook at receives the data under their privacy policy &mdash; not ours.</p>
+
+<h3>5.3 Browser-render mode (configurable per monitor)</h3>
+<p>For Single-Page Application (SPA) sites or pages that require a JavaScript runtime, PagePulse renders the page in a hidden offscreen iframe (Chrome 116+) or, as a fallback, a tiny off-screen popup window. The user&rsquo;s normal browsing cookies for the target site may be used during this render &mdash; this is required to monitor pages that need authentication. No data leaves the browser as a result of rendering.</p>
 
 <h2>6. Data Sharing</h2>
-<p>PagePulse does <strong>not</strong> share, sell, rent, or transfer your data to any third party for any reason. There is no data to share because nothing is collected by us.</p>
+<p>PagePulse, as a publisher, does <strong>not</strong> share, sell, rent, or transfer your data. We do not collect any data &mdash; we have nothing to share. The opt-in features above transmit data to destinations <em>you</em> select; whatever you transmit is governed by your relationship with that destination, not with PagePulse.</p>
 
 <h2>7. Children's Privacy</h2>
 <p>PagePulse is not directed at children under the age of 13. We do not knowingly collect personal information from children. Since no personal information is collected from any user, this policy applies equally to all ages.</p>
