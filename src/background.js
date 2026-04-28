@@ -15,24 +15,14 @@ import {
 } from './lib/configSync.js';
 import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, NOTIFY_MODES, RENDER_MODES } from './lib/constants.js';
 
-// Chrome 116+ supports the IFRAME_SCRIPTING reason for chrome.offscreen,
-// which lets us load a URL inside a hidden iframe in the offscreen
-// document — no visible tab needed. Older Chrome falls back to the
-// legacy hidden-tab path implemented below.
-const MIN_CHROME_FOR_IFRAME_SCRIPTING = 116;
-const detectedChromeVersion = (() => {
-  try {
-    const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
-    const m = ua.match(/Chrom(?:e|ium)\/(\d+)/);
-    return m ? parseInt(m[1], 10) : 0;
-  } catch {
-    return 0;
-  }
-})();
-const supportsOffscreenIframe = detectedChromeVersion === 0 || detectedChromeVersion >= MIN_CHROME_FOR_IFRAME_SCRIPTING;
-if (detectedChromeVersion > 0 && !supportsOffscreenIframe) {
-  console.warn(`[PagePulse] Chrome ${detectedChromeVersion} < ${MIN_CHROME_FOR_IFRAME_SCRIPTING}; offscreen iframe rendering unavailable, falling back to hidden-tab render with reduced reliability.`);
-}
+// SPA / JS-rendered pages are loaded into a hidden iframe inside the
+// chrome.offscreen document (IFRAME_SCRIPTING reason, Chrome 116+).
+// We do not fall back to opening a real window for older Chrome —
+// hidden-window fallbacks are flagged as deceptive UI by Chrome Web
+// Store review. Chrome <116 is exceedingly rare in 2026 (manifest_version
+// 3 itself requires recent Chrome); on those installs the JS-rendered
+// monitor flips to BROKEN and the user sees the standard "Monitor needs
+// attention" notification.
 
 // --- Alarm Setup + Context Menu ---
 chrome.runtime.onInstalled.addListener(async () => {
@@ -67,7 +57,7 @@ async function ensureOffscreen({ withIframe = false } = {}) {
   });
   if (contexts.length === 0) {
     const reasons = ['DOM_PARSER', 'AUDIO_PLAYBACK'];
-    if (withIframe && supportsOffscreenIframe) reasons.push('IFRAME_SCRIPTING');
+    if (withIframe) reasons.push('IFRAME_SCRIPTING');
     await chrome.offscreen.createDocument({
       url: 'offscreen.html',
       reasons,
@@ -119,169 +109,6 @@ async function offscreenRenderExtract(url, queries) {
   });
 }
 
-// --- Browser Render: open hidden tab, wait for JS, extract content ---
-// Legacy path for Chrome <116 or as fallback when offscreen iframe fails.
-async function browserRenderExtract(url, queries) {
-  // LEGACY path for Chrome <116 only. Modern Chrome uses offscreenRenderExtract.
-  // Open the smallest possible popup window positioned far off-screen so it
-  // never enters the user's tab strip or main window. Some platforms clamp
-  // negative coordinates to the visible screen — width/height of 1 keeps
-  // visibility minimal even in the clamped case.
-  let tabId = null;
-  let windowId = null;
-  try {
-    let win = null;
-    try {
-      win = await chrome.windows.create({
-        url,
-        focused: false,
-        type: 'popup',
-        width: 1,
-        height: 1,
-        left: -10000,
-        top: -10000,
-      });
-    } catch (e) {
-      console.warn('[PagePulse] windows.create failed, falling back to inactive tab:', e);
-    }
-    if (win && win.tabs && win.tabs[0]) {
-      windowId = win.id;
-      tabId = win.tabs[0].id;
-    } else {
-      const tab = await chrome.tabs.create({ url, active: false });
-      tabId = tab.id;
-    }
-
-    // Wait for the page to fully load
-    await new Promise((resolve) => {
-      const listener = (updatedTabId, changeInfo) => {
-        if (updatedTabId === tabId && changeInfo.status === 'complete') {
-          chrome.tabs.onUpdated.removeListener(listener);
-          resolve();
-        }
-      };
-      chrome.tabs.onUpdated.addListener(listener);
-      // Timeout after 30 seconds
-      setTimeout(() => {
-        chrome.tabs.onUpdated.removeListener(listener);
-        resolve();
-      }, 30000);
-    });
-
-    // Give JS extra time to render dynamic content
-    await new Promise(r => setTimeout(r, 2000));
-
-    // Inject extraction script
-    const results = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: (queryList) => {
-        // Inline fingerprint matcher — must be self-contained because the
-        // function body is serialized into the target page.
-        const FP_LEN = 100;
-        const SIM_THRESHOLD = 0.8;
-        function levenshtein(a, b) {
-          if (a === b) return 0;
-          if (!a) return b ? b.length : 0;
-          if (!b) return a.length;
-          const m = a.length, n = b.length;
-          const prev = new Array(n + 1), curr = new Array(n + 1);
-          for (let j = 0; j <= n; j++) prev[j] = j;
-          for (let i = 1; i <= m; i++) {
-            curr[0] = i;
-            for (let j = 1; j <= n; j++) {
-              const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
-              curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
-            }
-            for (let j = 0; j <= n; j++) prev[j] = curr[j];
-          }
-          return prev[n];
-        }
-        function similarity(a, b) {
-          if (a == null || b == null) return 0;
-          if (a === '' && b === '') return 1;
-          if (a === '' || b === '') return 0;
-          return 1 - levenshtein(a, b) / Math.max(a.length, b.length);
-        }
-        function matchFingerprint(fp) {
-          if (!fp) return null;
-          const target = fp.trim().substring(0, FP_LEN);
-          if (!target) return null;
-          let best = null;
-          const els = document.querySelectorAll('*');
-          for (const el of els) {
-            const text = (el.textContent || '').trim();
-            if (text.length < 8) continue;
-            const prefix = text.substring(0, FP_LEN);
-            const score = similarity(target, prefix);
-            if (score < SIM_THRESHOLD) continue;
-            if (!best || score > best.score || (score === best.score && text.length < best.text.length)) {
-              best = { el, text, score };
-            }
-          }
-          return best;
-        }
-        function genSel(el) {
-          if (!el) return null;
-          if (el.id) return '#' + el.id;
-          const testId = el.getAttribute && el.getAttribute('data-testid');
-          if (testId) return '[data-testid="' + testId + '"]';
-          const parts = [];
-          let cur = el; let depth = 0;
-          while (cur && cur.tagName && cur.tagName.toLowerCase() !== 'body' && depth < 5) {
-            let seg = cur.tagName.toLowerCase();
-            if (cur.id && depth > 0) { parts.unshift('#' + cur.id); break; }
-            if (cur.className && typeof cur.className === 'string') {
-              const cls = cur.className.trim().split(/\s+/).slice(0, 2).map(c => '.' + c).join('');
-              if (cls) seg += cls;
-            }
-            parts.unshift(seg);
-            cur = cur.parentElement;
-            depth++;
-          }
-          return parts.join(' > ') || el.tagName.toLowerCase();
-        }
-
-        return queryList.map(({ monitorId, selector, xpath, textFingerprint }) => {
-          // Try CSS selector
-          if (selector) {
-            try {
-              const el = document.querySelector(selector);
-              if (el) return { monitorId, text: el.textContent.trim(), matchedBy: 'selector' };
-            } catch {}
-          }
-          // Try XPath
-          if (xpath) {
-            try {
-              const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-              const el = result.singleNodeValue;
-              if (el) return { monitorId, text: el.textContent.trim(), matchedBy: 'xpath' };
-            } catch {}
-          }
-          // Try textFingerprint recovery
-          if (textFingerprint) {
-            try {
-              const m = matchFingerprint(textFingerprint);
-              if (m) return { monitorId, text: m.text, matchedBy: 'fingerprint', recoveredSelector: genSel(m.el) };
-            } catch {}
-          }
-          return { monitorId, text: null, matchedBy: null };
-        });
-      },
-      args: [queries],
-    });
-
-    return results?.[0]?.result || queries.map(q => ({ monitorId: q.monitorId, text: null, matchedBy: null }));
-  } catch (e) {
-    console.error('[PagePulse] Browser render failed:', e);
-    return queries.map(q => ({ monitorId: q.monitorId, text: null, matchedBy: null }));
-  } finally {
-    if (windowId != null) {
-      try { await chrome.windows.remove(windowId); } catch {}
-    } else if (tabId) {
-      try { await chrome.tabs.remove(tabId); } catch {}
-    }
-  }
-}
 
 // --- Tick Handler ---
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -327,19 +154,12 @@ async function runTick() {
     let results;
 
     if (needsBrowser) {
-      // Browser render — prefer offscreen iframe (no visible window).
-      // If the iframe is blocked (X-Frame-Options / CSP frame-ancestors),
-      // do NOT auto-fall back to a real window — the F2 null-text guard
-      // below will mark the monitor BROKEN after 3 ticks and surface the
-      // "needs attention" notification, which is the honest outcome:
-      // sites like Twitter/LinkedIn cannot be reliably monitored from a
-      // sandboxed iframe. The legacy hidden-tab path is reserved for
-      // Chrome <116 where offscreen iframe is unavailable.
-      if (supportsOffscreenIframe) {
-        results = await offscreenRenderExtract(url, queries);
-      } else {
-        results = await browserRenderExtract(url, queries);
-      }
+      // Browser render — exclusively offscreen iframe (no visible window
+      // ever). If the iframe is blocked (X-Frame-Options / CSP
+      // frame-ancestors on sites like Twitter/LinkedIn), the F2 null-text
+      // guard below marks the monitor BROKEN after 3 ticks and surfaces
+      // the "needs attention" notification.
+      results = await offscreenRenderExtract(url, queries);
     } else {
       // Standard fetch: fast, works for static/SSR pages
       let html;
