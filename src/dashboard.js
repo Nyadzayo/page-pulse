@@ -9,6 +9,11 @@ const soundOffIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 
 let currentMonitorId = null;
 
+// History entries indexed by string position so the rendered HTML never has
+// to embed untrusted entry text in attributes (see escapeAttr() comment
+// below). The click handler reads data-idx and looks up by index.
+const historyEntryMap = new Map();
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Theme
   initTheme();
@@ -38,7 +43,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
   const params = new URLSearchParams(window.location.search);
   const targetId = params.get('monitor');
-  if (targetId) selectMonitor(targetId);
+  if (targetId) await selectMonitor(targetId);
+
+  // H1 — broken-monitor notification deep-link: ?action=reselect&monitor=<id>
+  // shows a banner prompting the user to re-add the monitor on its source page.
+  if (params.get('action') === 'reselect' && targetId) {
+    showReselectPrompt(targetId);
+  }
 
   // Handle shared monitor import
   const importData = params.get('import');
@@ -78,12 +89,12 @@ async function loadSidebar() {
       (m.consecutiveErrors > 0) ? 'Flaky' : '';
     const pausedTag = !m.active ? '<span class="ds-paused">PAUSED</span>' : '';
     return `
-      <div class="ds-item ${m.id === currentMonitorId ? 'active' : ''}" data-id="${m.id}">
+      <div class="ds-item ${m.id === currentMonitorId ? 'active' : ''}" data-id="${escapeAttr(m.id)}">
         <div class="ds-dot ${dotClass}"></div>
         <div class="ds-info">
           <div class="ds-name">${escapeHtml(m.label)}</div>
-          <div class="ds-host">${host}</div>
-          ${healthText ? `<div class="ds-health">${healthText}</div>` : ''}
+          <div class="ds-host">${escapeHtml(host)}</div>
+          ${healthText ? `<div class="ds-health">${escapeHtml(healthText)}</div>` : ''}
         </div>
         <span class="ds-badge ${m.changeCount > 0 ? 'changes' : 'zero'}">${m.changeCount > 0 ? m.changeCount : '—'}</span>
         ${pausedTag}
@@ -148,7 +159,7 @@ async function selectMonitor(id) {
       .replace(' minutes', 'm')
       .replace(' hour', 'h')
       .replace(' hours', 'h');
-    return `<button class="dm-interval-opt ${isActive ? 'active' : ''}" data-ms="${i.ms}">${labelShort}</button>`;
+    return `<button class="dm-interval-opt ${isActive ? 'active' : ''}" data-ms="${escapeAttr(i.ms)}">${escapeHtml(labelShort)}</button>`;
   }).join('');
 
   // Keywords
@@ -181,11 +192,14 @@ async function selectMonitor(id) {
   // History
   const history = await getHistory(id);
   const historyList = document.getElementById('history-list');
+  historyEntryMap.clear();
   if (history.length === 0) {
     historyList.innerHTML = '<p style="color:var(--text-tertiary);font-size:12px;">No changes detected yet.</p>';
   } else {
-    historyList.innerHTML = history.sort((a, b) => b.ts - a.ts).map(entry => {
-      return renderHistoryEntry(entry, diffMode);
+    const sorted = history.sort((a, b) => b.ts - a.ts);
+    historyList.innerHTML = sorted.map((entry, idx) => {
+      historyEntryMap.set(String(idx), entry);
+      return renderHistoryEntry(entry, diffMode, idx);
     }).join('');
   }
 
@@ -228,7 +242,7 @@ function renderSummaryHtml(entry) {
     for (const part of summary.parts) {
       html += `<ul class="dm-summary-items">`;
       for (const item of part.items) {
-        html += `<li class="${part.type}">${escapeHtml(item)}</li>`;
+        html += `<li class="${escapeAttr(part.type)}">${escapeHtml(item)}</li>`;
       }
       html += `</ul>`;
     }
@@ -246,7 +260,7 @@ function renderDetailedHtml(entry) {
   }).join('')}</div>`;
 }
 
-function renderHistoryEntry(entry, diffMode) {
+function renderHistoryEntry(entry, diffMode, idx) {
   let bodyHtml = '';
   if (diffMode === DIFF_MODES.SUMMARY) {
     bodyHtml = renderSummaryHtml(entry);
@@ -254,20 +268,20 @@ function renderHistoryEntry(entry, diffMode) {
     bodyHtml = renderDetailedHtml(entry);
   } else {
     // BOTH: summary at top, expandable detailed diff below
-    const uid = 'detail-' + entry.ts;
+    const uid = 'detail-' + idx;
     bodyHtml = renderSummaryHtml(entry);
     bodyHtml += `<div style="padding:0 14px 10px;">
-      <button class="dm-detail-toggle" data-target="${uid}">Show detailed diff</button>
-      <div id="${uid}" class="dm-detail-collapsible">${renderDetailedHtml(entry)}</div>
+      <button class="dm-detail-toggle" data-target="${escapeAttr(uid)}">Show detailed diff</button>
+      <div id="${escapeAttr(uid)}" class="dm-detail-collapsible">${renderDetailedHtml(entry)}</div>
     </div>`;
   }
 
   return `
     <div class="dm-entry">
       <div class="dm-entry-head">
-        <span class="dm-entry-time">${new Date(entry.ts).toLocaleString()}</span>
+        <span class="dm-entry-time">${escapeHtml(new Date(entry.ts).toLocaleString())}</span>
         <div style="display:flex;gap:6px;align-items:center;">
-          <button class="dm-copy-btn" data-old="${escapeHtml(entry.old)}" data-new="${escapeHtml(entry.new)}" title="Copy to clipboard">
+          <button class="dm-copy-btn" data-idx="${escapeAttr(idx)}" title="Copy to clipboard">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           </button>
           <span class="dm-entry-tag">Changed</span>
@@ -448,8 +462,10 @@ function setupEventListeners() {
     // Handle copy button
     const copyBtn = e.target.closest('.dm-copy-btn');
     if (copyBtn) {
-      const old = copyBtn.dataset.old;
-      const nw = copyBtn.dataset.new;
+      const entry = historyEntryMap.get(copyBtn.dataset.idx);
+      if (!entry) return;
+      const old = entry.old || '';
+      const nw = entry.new || '';
       const monitors = await getMonitors();
       const monitor = monitors[currentMonitorId];
       const text = `PagePulse Change — ${monitor?.label || 'Monitor'}\n${new Date().toLocaleString()}\nOld: ${old.substring(0, 200)}\nNew: ${nw.substring(0, 200)}\n\nTracked by PagePulse — free website change monitor`;
@@ -552,8 +568,64 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// escapeHtml() round-trips through textContent → innerHTML which does NOT
+// escape `"` or `'` (they are valid in text). When that output is interpolated
+// into an HTML attribute, an attacker can close the attribute and inject
+// event handlers (e.g. `" onmouseover="...`). Use escapeAttr() at every
+// attribute-interpolation site so the five HTML-significant characters are
+// all escaped.
+function escapeAttr(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function playChimePreview() {
   playChime(0.5);
+}
+
+// H1 — surfaces a banner explaining the monitor's selector broke and
+// offers a button that opens the source URL in a new tab so the user
+// can re-add the monitor with the modern element. We don't auto-trigger
+// content.js here because the user gesture must come from the popup or
+// the source tab itself (Chrome MV3 permissions).
+async function showReselectPrompt(monitorId) {
+  const monitors = await getMonitors();
+  const monitor = monitors[monitorId];
+  if (!monitor) return;
+
+  let banner = document.getElementById('reselect-banner');
+  if (banner) banner.remove();
+  banner = document.createElement('div');
+  banner.id = 'reselect-banner';
+  banner.className = 'dm-paused-banner';
+  banner.style.background = 'var(--red-dim, rgba(239,68,68,0.12))';
+  banner.style.color = 'var(--red-text, #FCA5A5)';
+  banner.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    <span>This monitor's element could not be found. Open the source page and re-add it to get checks running again.</span>
+    <button id="btn-reselect-open" class="dm-btn" style="margin-left:auto;">Open source page</button>
+    <button id="btn-reselect-dismiss" class="dm-btn" style="margin-left:8px;">Dismiss</button>
+  `;
+  // Insert at the top of monitor-detail
+  const detail = document.getElementById('monitor-detail');
+  if (detail && detail.firstChild) {
+    detail.insertBefore(banner, detail.firstChild);
+  }
+
+  document.getElementById('btn-reselect-open')?.addEventListener('click', () => {
+    try { window.open(monitor.url, '_blank'); } catch {}
+  });
+  document.getElementById('btn-reselect-dismiss')?.addEventListener('click', () => {
+    banner.remove();
+    // Clean the action param so a refresh doesn't re-show.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('action');
+    window.history.replaceState({}, '', url.toString());
+  });
 }
 
 function downloadFile(content, filename, mimeType) {
@@ -658,7 +730,7 @@ function showShareModal(monitor) {
       <div class="share-title">Share Monitor</div>
       <div class="share-subtitle">Share this monitor config — others with PagePulse can import it with one click</div>
       <div class="share-link-box">
-        <input class="share-link-input" value="${escapeHtml(shareLink)}" readonly>
+        <input class="share-link-input" value="${escapeAttr(shareLink)}" readonly>
         <button class="share-copy-btn" id="share-copy-link">Copy Link</button>
       </div>
       <div class="share-subtitle">Or share as text:</div>

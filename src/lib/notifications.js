@@ -75,3 +75,30 @@ async function playNotificationSound() {
     // Silently ignore — sound is best-effort
   }
 }
+
+/**
+ * H1 — fire a one-time "Monitor needs attention" notification when a
+ * monitor transitions to BROKEN. The notification id uses the
+ * `pagepulse-broken-<monitorId>` prefix so the click handler in
+ * background.js can route the user to the dashboard with a re-select
+ * prompt for that specific monitor.
+ */
+export async function createBrokenMonitorNotification(monitor) {
+  if (!monitor || !monitor.id) return null;
+  const notifId = `pagepulse-broken-${monitor.id}`;
+  try {
+    await chrome.notifications.create(notifId, {
+      type: 'basic',
+      title: `Monitor needs attention: ${monitor.label || 'Unnamed monitor'}`,
+      message: 'The page DOM changed and we could not find your element. Click to re-select it.',
+      iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
+      priority: 2,
+      requireInteraction: true,
+    });
+    console.log(`[PagePulse] Broken-monitor notification created: ${notifId}`);
+    return notifId;
+  } catch (e) {
+    console.error('[PagePulse] Broken-monitor notification failed:', e);
+    return null;
+  }
+}

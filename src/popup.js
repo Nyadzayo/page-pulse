@@ -79,11 +79,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         item.innerHTML = `
           <div class="pm-status ${statusClass}"></div>
           <div class="pm-info">
-            <div class="pm-name" title="${escapeHtml(m.label)}">${escapeHtml(m.label)}</div>
+            <div class="pm-name" title="${escapeAttr(m.label)}">${escapeHtml(m.label)}</div>
             <div class="pm-meta">${metaText}</div>
           </div>
           <div class="pm-changes ${m.changeCount === 0 ? 'zero' : ''}">${m.changeCount || '0'}</div>
-          <button class="pm-toggle ${m.active ? 'on' : 'off'}" data-id="${m.id}"></button>
+          <button class="pm-toggle ${m.active ? 'on' : 'off'}" data-id="${escapeAttr(m.id)}"></button>
         `;
         listEl.appendChild(item);
       }
@@ -127,6 +127,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       } catch {}
     });
+
+    // ── Render-mode toggle ──
+    // Persists user's choice in chrome.storage.local under pendingRenderMode.
+    // 'auto' (default) lets background.js detect SPA shells at create time;
+    // 'fetch' / 'browser' override the auto-detection.
+    const renderModeRow = document.getElementById('render-mode-opts');
+    if (renderModeRow) {
+      const stored = await chrome.storage.local.get('pendingRenderMode');
+      const currentMode = stored.pendingRenderMode || 'auto';
+      renderModeRow.querySelectorAll('.popup-render-mode-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.mode === currentMode);
+      });
+      renderModeRow.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.popup-render-mode-btn');
+        if (!btn) return;
+        const mode = btn.dataset.mode;
+        renderModeRow
+          .querySelectorAll('.popup-render-mode-btn')
+          .forEach((b) => b.classList.toggle('active', b === btn));
+        try { await chrome.storage.local.set({ pendingRenderMode: mode }); } catch {}
+      });
+    }
 
     // ── Add Monitor ──
     document.getElementById('btn-add').addEventListener('click', async () => {
@@ -193,6 +215,18 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str || '';
   return div.innerHTML;
+}
+
+// escapeHtml() (textContent → innerHTML) does NOT escape `"` or `'`. Use
+// escapeAttr() at every attribute-interpolation site to prevent quote
+// breakouts that could inject event handlers.
+function escapeAttr(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function isMonitorablePage(url) {
