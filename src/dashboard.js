@@ -2,6 +2,7 @@ import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor, upd
 import { computeDiff, generateSummary, matchesKeyword } from './lib/differ.js';
 import { isValidWebhookUrl } from './lib/webhook.js';
 import { PROVIDER_PRESETS } from './lib/aiSummary.js';
+import { buildRssFeed, monitorToFeedItems } from './lib/rssFeed.js';
 import { INTERVALS, TIER_LIMITS, DIFF_MODES, NOTIFY_MODES, STATUS } from './lib/constants.js';
 import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
 import { playChime } from './lib/sound.js';
@@ -640,6 +641,22 @@ function setupEventListeners() {
     }
     const csv = rows.map(r => r.join(',')).join('\n');
     downloadFile(csv, `pagepulse-${safeName(monitor.label)}.csv`, 'text/csv');
+  });
+
+  document.getElementById('btn-export-rss')?.addEventListener('click', async () => {
+    exportMenu.classList.remove('open');
+    if (!currentMonitorId) return;
+    const history = await getHistory(currentMonitorId);
+    const monitors = await getMonitors();
+    const monitor = monitors[currentMonitorId];
+    const items = monitorToFeedItems(monitor, history.sort((a, b) => b.ts - a.ts));
+    const xml = buildRssFeed({
+      title: `PagePulse — ${monitor.label}`,
+      description: `Recent changes detected on ${monitor.url}`,
+      link: monitor.url,
+      items,
+    });
+    downloadFile(xml, `pagepulse-${safeName(monitor.label)}.xml`, 'application/rss+xml');
   });
 
   // Shortcuts button
