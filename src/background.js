@@ -110,14 +110,25 @@ async function offscreenRenderExtract(url, queries) {
 // --- Browser Render: open hidden tab, wait for JS, extract content ---
 // Legacy path for Chrome <116 or as fallback when offscreen iframe fails.
 async function browserRenderExtract(url, queries) {
+  // LEGACY path for Chrome <116 only. Modern Chrome uses offscreenRenderExtract.
+  // Open the smallest possible popup window positioned far off-screen so it
+  // never enters the user's tab strip or main window. Some platforms clamp
+  // negative coordinates to the visible screen — width/height of 1 keeps
+  // visibility minimal even in the clamped case.
   let tabId = null;
   let windowId = null;
   try {
-    // Open in a minimized popup window so the user's main tab strip stays
-    // clean. Falls back to a hidden tab if windows.create is unavailable.
     let win = null;
     try {
-      win = await chrome.windows.create({ url, focused: false, state: 'minimized', type: 'popup' });
+      win = await chrome.windows.create({
+        url,
+        focused: false,
+        type: 'popup',
+        width: 1,
+        height: 1,
+        left: -10000,
+        top: -10000,
+      });
     } catch (e) {
       console.warn('[PagePulse] windows.create failed, falling back to inactive tab:', e);
     }
@@ -304,16 +315,16 @@ async function runTick() {
     let results;
 
     if (needsBrowser) {
-      // Browser render — prefer offscreen iframe (no visible tab); fall
-      // back to hidden-tab path on Chrome <116 or if offscreen returns
-      // empty results (e.g. iframe blocked by X-Frame-Options).
+      // Browser render — prefer offscreen iframe (no visible window).
+      // If the iframe is blocked (X-Frame-Options / CSP frame-ancestors),
+      // do NOT auto-fall back to a real window — the F2 null-text guard
+      // below will mark the monitor BROKEN after 3 ticks and surface the
+      // "needs attention" notification, which is the honest outcome:
+      // sites like Twitter/LinkedIn cannot be reliably monitored from a
+      // sandboxed iframe. The legacy hidden-tab path is reserved for
+      // Chrome <116 where offscreen iframe is unavailable.
       if (supportsOffscreenIframe) {
         results = await offscreenRenderExtract(url, queries);
-        const allEmpty = results.every((r) => r.text === null);
-        if (allEmpty) {
-          console.warn('[PagePulse] Offscreen iframe render returned empty for', url, '— falling back to hidden tab.');
-          results = await browserRenderExtract(url, queries);
-        }
       } else {
         results = await browserRenderExtract(url, queries);
       }
