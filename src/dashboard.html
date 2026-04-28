@@ -77,6 +77,19 @@
       </aside>
 
       <main id="main-panel" class="dash-main">
+        <div id="onboarding-card" class="onboarding-card" style="display:none;">
+          <div class="onboarding-head">
+            <div class="onboarding-title">Welcome to PagePulse</div>
+            <button id="btn-onboarding-dismiss-x" class="onboarding-dismiss-x" title="Dismiss">&times;</button>
+          </div>
+          <ol class="onboarding-steps">
+            <li><span class="onboarding-step-num">1</span> Visit any page and click the PagePulse icon in your toolbar to add a monitor.</li>
+            <li><span class="onboarding-step-num">2</span> Click the element you want to track — a price, a job count, anything.</li>
+            <li><span class="onboarding-step-num">3</span> We&rsquo;ll check on a schedule and notify you when it changes.</li>
+          </ol>
+          <button id="btn-onboarding-dismiss" class="dm-btn check onboarding-cta">Got it</button>
+        </div>
+
         <div id="no-selection" class="no-selection">
           <p>Select a monitor from the sidebar to view details and change history.</p>
         </div>

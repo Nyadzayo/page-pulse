@@ -2,6 +2,7 @@ import { getMonitors, getSettings, getHistory, updateMonitor, deleteMonitor, upd
 import { computeDiff, generateSummary, matchesKeyword } from './lib/differ.js';
 import { isValidWebhookUrl } from './lib/webhook.js';
 import { PROVIDER_PRESETS, summarizeChange, isAiEnabled } from './lib/aiSummary.js';
+import { shouldShowOnboarding, markOnboardingSeen } from './lib/onboarding.js';
 import { buildRssFeed, monitorToFeedItems } from './lib/rssFeed.js';
 import { INTERVALS, TIER_LIMITS, DIFF_MODES, NOTIFY_MODES, STATUS } from './lib/constants.js';
 import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
@@ -241,6 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadSidebar();
   setupEventListeners();
+  await maybeShowOnboarding();
   const params = new URLSearchParams(window.location.search);
   const targetId = params.get('monitor');
   if (targetId) await selectMonitor(targetId);
@@ -571,7 +573,25 @@ function renderHistoryEntry(entry, diffMode, idx) {
   `;
 }
 
+async function maybeShowOnboarding() {
+  const card = document.getElementById('onboarding-card');
+  if (!card) return;
+  const show = await shouldShowOnboarding();
+  card.style.display = show ? '' : 'none';
+}
+
+async function dismissOnboarding() {
+  const card = document.getElementById('onboarding-card');
+  await markOnboardingSeen();
+  if (!card) return;
+  card.classList.add('dismissing');
+  setTimeout(() => { card.style.display = 'none'; card.classList.remove('dismissing'); }, 320);
+}
+
 function setupEventListeners() {
+  document.getElementById('btn-onboarding-dismiss')?.addEventListener('click', dismissOnboarding);
+  document.getElementById('btn-onboarding-dismiss-x')?.addEventListener('click', dismissOnboarding);
+
   document.getElementById('sidebar-list').addEventListener('click', e => {
     const item = e.target.closest('.ds-item');
     if (item) selectMonitor(item.dataset.id);

@@ -58,6 +58,7 @@ export const DEFAULT_SETTINGS = {
   aiApiUrl: '',
   aiModel: '',
   aiSummaryInstruction: '',
+  firstRunSeen: false,
 };
 
 export const DIFF_MODES = {
