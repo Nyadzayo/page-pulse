@@ -43,7 +43,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
   const params = new URLSearchParams(window.location.search);
   const targetId = params.get('monitor');
-  if (targetId) selectMonitor(targetId);
+  if (targetId) await selectMonitor(targetId);
+
+  // H1 — broken-monitor notification deep-link: ?action=reselect&monitor=<id>
+  // shows a banner prompting the user to re-add the monitor on its source page.
+  if (params.get('action') === 'reselect' && targetId) {
+    showReselectPrompt(targetId);
+  }
 
   // Handle shared monitor import
   const importData = params.get('import');
@@ -579,6 +585,47 @@ function escapeAttr(str) {
 
 function playChimePreview() {
   playChime(0.5);
+}
+
+// H1 — surfaces a banner explaining the monitor's selector broke and
+// offers a button that opens the source URL in a new tab so the user
+// can re-add the monitor with the modern element. We don't auto-trigger
+// content.js here because the user gesture must come from the popup or
+// the source tab itself (Chrome MV3 permissions).
+async function showReselectPrompt(monitorId) {
+  const monitors = await getMonitors();
+  const monitor = monitors[monitorId];
+  if (!monitor) return;
+
+  let banner = document.getElementById('reselect-banner');
+  if (banner) banner.remove();
+  banner = document.createElement('div');
+  banner.id = 'reselect-banner';
+  banner.className = 'dm-paused-banner';
+  banner.style.background = 'var(--red-dim, rgba(239,68,68,0.12))';
+  banner.style.color = 'var(--red-text, #FCA5A5)';
+  banner.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    <span>This monitor's element could not be found. Open the source page and re-add it to get checks running again.</span>
+    <button id="btn-reselect-open" class="dm-btn" style="margin-left:auto;">Open source page</button>
+    <button id="btn-reselect-dismiss" class="dm-btn" style="margin-left:8px;">Dismiss</button>
+  `;
+  // Insert at the top of monitor-detail
+  const detail = document.getElementById('monitor-detail');
+  if (detail && detail.firstChild) {
+    detail.insertBefore(banner, detail.firstChild);
+  }
+
+  document.getElementById('btn-reselect-open')?.addEventListener('click', () => {
+    try { window.open(monitor.url, '_blank'); } catch {}
+  });
+  document.getElementById('btn-reselect-dismiss')?.addEventListener('click', () => {
+    banner.remove();
+    // Clean the action param so a refresh doesn't re-show.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('action');
+    window.history.replaceState({}, '', url.toString());
+  });
 }
 
 function downloadFile(content, filename, mimeType) {

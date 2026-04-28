@@ -1,12 +1,20 @@
 // ─── Shared helpers ────────────────────────────────────────────────────────
 
+import { matchFingerprint } from './lib/selectorRecovery.js';
+
 /**
  * Run the CSS+XPath fallback against a parsed Document and return one
  * result per query. Used by both parseAndQuery (HTML string input) and
  * iframeRender (live iframe Document input).
+ *
+ * If a query also carries a `textFingerprint` and the CSS+XPath both
+ * miss, we attempt selector recovery via matchFingerprint(): when a
+ * sufficiently similar element is found, the result includes
+ * `matchedBy: 'fingerprint'` and a `recoveredSelector` the caller is
+ * expected to persist back to the monitor.
  */
 export function queryDocument(doc, queries) {
-  return queries.map(({ monitorId, selector, xpath }) => {
+  return queries.map(({ monitorId, selector, xpath, textFingerprint }) => {
     if (selector) {
       try {
         const el = doc.querySelector(selector);
@@ -19,6 +27,19 @@ export function queryDocument(doc, queries) {
         const el = result.singleNodeValue;
         if (el) return { monitorId, text: el.textContent.trim(), matchedBy: 'xpath' };
       } catch { /* invalid xpath, fall through */ }
+    }
+    if (textFingerprint) {
+      try {
+        const match = matchFingerprint(doc, textFingerprint);
+        if (match) {
+          return {
+            monitorId,
+            text: match.text,
+            matchedBy: 'fingerprint',
+            recoveredSelector: match.selector,
+          };
+        }
+      } catch { /* fingerprint walk failed, fall through */ }
     }
     return { monitorId, text: null, matchedBy: null };
   });

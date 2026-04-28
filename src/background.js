@@ -1,8 +1,9 @@
 import { getMonitors, getSettings, updateMonitor, saveMonitor, appendHistory, getMonitor, getPendingDigest, addPendingDigest, clearPendingDigest } from './lib/storage.js';
 import { filterDueMonitors, groupByUrl, processCheckResults, limitUrlBatch } from './lib/scheduler.js';
 import { hasOriginAccess, extractOrigin } from './lib/permissions.js';
-import { notifyBatch, updateBadge } from './lib/notifications.js';
+import { notifyBatch, updateBadge, createBrokenMonitorNotification } from './lib/notifications.js';
 import { detectSpa } from './lib/spaDetect.js';
+import { shouldFireBrokenNotification } from './lib/selectorRecovery.js';
 import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, NOTIFY_MODES, RENDER_MODES } from './lib/constants.js';
 
 // Chrome 116+ supports the IFRAME_SCRIPTING reason for chrome.offscreen,
@@ -133,7 +134,73 @@ async function browserRenderExtract(url, queries) {
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       func: (queryList) => {
-        return queryList.map(({ monitorId, selector, xpath }) => {
+        // Inline fingerprint matcher — must be self-contained because the
+        // function body is serialized into the target page.
+        const FP_LEN = 100;
+        const SIM_THRESHOLD = 0.8;
+        function levenshtein(a, b) {
+          if (a === b) return 0;
+          if (!a) return b ? b.length : 0;
+          if (!b) return a.length;
+          const m = a.length, n = b.length;
+          const prev = new Array(n + 1), curr = new Array(n + 1);
+          for (let j = 0; j <= n; j++) prev[j] = j;
+          for (let i = 1; i <= m; i++) {
+            curr[0] = i;
+            for (let j = 1; j <= n; j++) {
+              const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+              curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+            }
+            for (let j = 0; j <= n; j++) prev[j] = curr[j];
+          }
+          return prev[n];
+        }
+        function similarity(a, b) {
+          if (a == null || b == null) return 0;
+          if (a === '' && b === '') return 1;
+          if (a === '' || b === '') return 0;
+          return 1 - levenshtein(a, b) / Math.max(a.length, b.length);
+        }
+        function matchFingerprint(fp) {
+          if (!fp) return null;
+          const target = fp.trim().substring(0, FP_LEN);
+          if (!target) return null;
+          let best = null;
+          const els = document.querySelectorAll('*');
+          for (const el of els) {
+            const text = (el.textContent || '').trim();
+            if (text.length < 8) continue;
+            const prefix = text.substring(0, FP_LEN);
+            const score = similarity(target, prefix);
+            if (score < SIM_THRESHOLD) continue;
+            if (!best || score > best.score || (score === best.score && text.length < best.text.length)) {
+              best = { el, text, score };
+            }
+          }
+          return best;
+        }
+        function genSel(el) {
+          if (!el) return null;
+          if (el.id) return '#' + el.id;
+          const testId = el.getAttribute && el.getAttribute('data-testid');
+          if (testId) return '[data-testid="' + testId + '"]';
+          const parts = [];
+          let cur = el; let depth = 0;
+          while (cur && cur.tagName && cur.tagName.toLowerCase() !== 'body' && depth < 5) {
+            let seg = cur.tagName.toLowerCase();
+            if (cur.id && depth > 0) { parts.unshift('#' + cur.id); break; }
+            if (cur.className && typeof cur.className === 'string') {
+              const cls = cur.className.trim().split(/\s+/).slice(0, 2).map(c => '.' + c).join('');
+              if (cls) seg += cls;
+            }
+            parts.unshift(seg);
+            cur = cur.parentElement;
+            depth++;
+          }
+          return parts.join(' > ') || el.tagName.toLowerCase();
+        }
+
+        return queryList.map(({ monitorId, selector, xpath, textFingerprint }) => {
           // Try CSS selector
           if (selector) {
             try {
@@ -147,6 +214,13 @@ async function browserRenderExtract(url, queries) {
               const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
               const el = result.singleNodeValue;
               if (el) return { monitorId, text: el.textContent.trim(), matchedBy: 'xpath' };
+            } catch {}
+          }
+          // Try textFingerprint recovery
+          if (textFingerprint) {
+            try {
+              const m = matchFingerprint(textFingerprint);
+              if (m) return { monitorId, text: m.text, matchedBy: 'fingerprint', recoveredSelector: genSel(m.el) };
             } catch {}
           }
           return { monitorId, text: null, matchedBy: null };
@@ -203,6 +277,7 @@ async function runTick() {
       monitorId: m.id,
       selector: m.selector,
       xpath: m.xpath,
+      textFingerprint: m.textFingerprint,
     }));
 
     // Check if any monitor on this URL needs browser rendering
@@ -249,12 +324,29 @@ async function runTick() {
 
       const updates = processCheckResults(monitor, result, now);
 
+      // H1 — selector recovery: when offscreen / browser render matched the
+      // element by textFingerprint, persist the new CSS selector so future
+      // ticks resolve via the fast path.
+      if (result.matchedBy === 'fingerprint' && result.recoveredSelector) {
+        console.log(`[PagePulse] Selector recovered for "${monitor.label}": ${monitor.selector} → ${result.recoveredSelector}`);
+        updates.selector = result.recoveredSelector;
+      }
+
       if (updates.changed && updates.historyEntry) {
         console.log(`[PagePulse] Change detected: "${monitor.label}" — old: "${updates.historyEntry.old?.substring(0, 50)}" → new: "${updates.historyEntry.new?.substring(0, 50)}"`);
         await appendHistory(monitor.id, updates.historyEntry, settings.tier);
         changes.push({ monitor, newValue: updates.historyEntry.new });
       } else {
         console.log(`[PagePulse] No change for "${monitor.label}" (matched by: ${result.matchedBy})`);
+      }
+
+      // H1 — fire one-time broken-monitor notification on OK → BROKEN transition
+      if (shouldFireBrokenNotification(monitor, updates)) {
+        try {
+          await createBrokenMonitorNotification({ ...monitor, ...updates });
+        } catch (e) {
+          console.error('[PagePulse] Broken notification failed:', e);
+        }
       }
 
       const { changed, historyEntry, ...storageUpdates } = updates;
@@ -351,7 +443,12 @@ async function runDigest() {
 // --- Notification Click Handler ---
 chrome.notifications.onClicked.addListener((notificationId) => {
   const dashboardUrl = chrome.runtime.getURL('dashboard.html');
-  if (notificationId.includes('batch')) {
+  if (notificationId.startsWith('pagepulse-broken-')) {
+    // H1 — broken-monitor notification: open dashboard with a
+    // ?action=reselect prompt for that monitor.
+    const monitorId = notificationId.substring('pagepulse-broken-'.length);
+    chrome.tabs.create({ url: `${dashboardUrl}?monitor=${monitorId}&action=reselect` });
+  } else if (notificationId.includes('batch')) {
     chrome.tabs.create({ url: dashboardUrl });
   } else {
     // Extract monitor ID from "pagepulse-{monitorId}-{timestamp}"

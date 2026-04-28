@@ -77,6 +77,37 @@ describe('offscreen queryDocument', () => {
     expect(results[0].text).toBeNull();
     expect(results[0].matchedBy).toBeNull();
   });
+
+  it('recovers via textFingerprint when CSS+XPath both miss', () => {
+    const doc = new DOMParser().parseFromString(
+      `<html><body>
+        <main><span class="renamed-price">Price: $19.99 in stock</span></main>
+      </body></html>`,
+      'text/html',
+    );
+    const queries = [
+      {
+        monitorId: 'mFp',
+        selector: '.old-broken-class',
+        xpath: '/html/body/old/path',
+        textFingerprint: 'Price: $19.99 in stock',
+      },
+    ];
+    const results = queryDocument(doc, queries);
+    expect(results[0].text).toBe('Price: $19.99 in stock');
+    expect(results[0].matchedBy).toBe('fingerprint');
+    expect(results[0].recoveredSelector).toBeTruthy();
+  });
+
+  it('still returns nulls when fingerprint is missing and CSS+XPath miss', () => {
+    const doc = new DOMParser().parseFromString(
+      '<html><body><span>only</span></body></html>',
+      'text/html',
+    );
+    const queries = [{ monitorId: 'm1', selector: '.nope', xpath: '/x' }];
+    const results = queryDocument(doc, queries);
+    expect(results[0]).toEqual({ monitorId: 'm1', text: null, matchedBy: null });
+  });
 });
 
 // ─── iframeRender: hidden-iframe path for SPA pages ───────────────────────
