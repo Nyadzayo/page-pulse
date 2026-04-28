@@ -495,7 +495,7 @@ function renderHistoryEntry(entry, diffMode, idx) {
   if (entry.summary) {
     bodyHtml += `<div class="dm-ai-summary" title="AI-generated summary"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg> ${escapeHtml(entry.summary)}</div>`;
   } else {
-    bodyHtml += `<div class="dm-ai-actions"><button class="dm-ai-gen-btn" data-ts="${escapeAttr(entry.ts)}" title="Generate AI summary for this change"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg> Generate summary</button></div>`;
+    bodyHtml += `<div class="dm-ai-actions"><button class="dm-ai-gen-btn" data-ts="${escapeAttr(entry.ts)}" title="Generate AI summary for this change (uses your configured LLM provider)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg> Generate AI summary</button></div>`;
   }
   if (diffMode === DIFF_MODES.SUMMARY) {
     bodyHtml += renderSummaryHtml(entry);
