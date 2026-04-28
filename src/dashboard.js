@@ -140,6 +140,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     if (current.aiApiKey && current.aiApiUrl && current.aiModel) {
+      // Verify host_permissions are in place for the saved endpoint.
+      // Without this, the SW's fetch hits CORS preflight failures.
+      let parsed;
+      try { parsed = new URL(current.aiApiUrl); } catch { openAiDialog(current); return; }
+      const isLoopback = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '::1';
+      if (!isLoopback) {
+        const originPattern = `${parsed.protocol}//${parsed.host}/*`;
+        let has = false;
+        try { has = await chrome.permissions.contains({ origins: [originPattern] }); } catch {}
+        if (!has) {
+          let granted = false;
+          try { granted = await chrome.permissions.request({ origins: [originPattern] }); } catch {}
+          if (!granted) {
+            aiBtn.title = `AI off — permission for ${parsed.host} was denied`;
+            return;
+          }
+        }
+      }
       await updateSettings({ aiSummaryEnabled: true });
       aiOn = true;
       aiBtn.innerHTML = aiOnIcon;
@@ -166,6 +184,35 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Heuristic: anthropic.com → anthropic, otherwise openai_compatible.
       provider = url.includes('anthropic.com') ? 'anthropic' : 'openai_compatible';
     }
+    // CORS gate: AI endpoints (NVIDIA, OpenAI, Anthropic, etc.) don't
+    // return Access-Control-Allow-Origin for chrome-extension:// origins,
+    // so without host_permissions the browser blocks the fetch with a
+    // preflight failure. Request the origin via the optional <all_urls>
+    // permission ceiling. Localhost/loopback (Ollama) bypasses the gate.
+    let parsed;
+    try { parsed = new URL(url); } catch {
+      aiPresetNotes.textContent = 'Invalid URL — must start with http:// or https://';
+      aiPresetNotes.style.color = '#EF4444';
+      aiUrlInput.focus();
+      return;
+    }
+    const isLoopback = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '::1';
+    if (!isLoopback) {
+      const originPattern = `${parsed.protocol}//${parsed.host}/*`;
+      let granted = false;
+      try {
+        granted = await chrome.permissions.request({ origins: [originPattern] });
+      } catch (e) {
+        aiPresetNotes.textContent = `Could not request permission: ${e.message || e}`;
+        aiPresetNotes.style.color = '#EF4444';
+        return;
+      }
+      if (!granted) {
+        aiPresetNotes.textContent = `Permission denied for ${parsed.host}. Click Enable again to retry.`;
+        aiPresetNotes.style.color = '#EF4444';
+        return;
+      }
+    }
     await updateSettings({
       aiSummaryEnabled: true,
       aiProvider: provider,
@@ -176,6 +223,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     aiOn = true;
     aiBtn.innerHTML = aiOnIcon;
     aiBtn.title = 'AI summaries ON';
+    aiPresetNotes.style.color = '';
     aiDialog.close();
   });
 
