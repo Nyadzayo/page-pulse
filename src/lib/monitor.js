@@ -29,6 +29,7 @@ export const MONITOR_SCHEMA_DEFAULTS = Object.freeze({
   keywords: '',
   ignorePatterns: '',
   webhookUrl: '',
+  aiSummaryInstruction: '',
 });
 
 /**
@@ -73,6 +74,7 @@ export function makeMonitor(input, opts) {
     keywords: MONITOR_SCHEMA_DEFAULTS.keywords,
     ignorePatterns: MONITOR_SCHEMA_DEFAULTS.ignorePatterns,
     webhookUrl: input.webhookUrl ?? MONITOR_SCHEMA_DEFAULTS.webhookUrl,
+    aiSummaryInstruction: input.aiSummaryInstruction ?? MONITOR_SCHEMA_DEFAULTS.aiSummaryInstruction,
   };
 }
 

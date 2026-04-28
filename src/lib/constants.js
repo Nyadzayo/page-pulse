@@ -57,6 +57,7 @@ export const DEFAULT_SETTINGS = {
   aiApiKey: '',
   aiApiUrl: '',
   aiModel: '',
+  aiSummaryInstruction: '',
 };
 
 export const DIFF_MODES = {

@@ -31,6 +31,17 @@
       <input id="ai-key-input" type="password" class="dm-setting-input" autocomplete="off" style="width:100%;margin-bottom:6px;">
       <p id="ai-preset-notes" style="font-size:11px;color:var(--text-tertiary);margin:0 0 14px 0;min-height:14px;"></p>
 
+      <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Custom instruction (optional)</label>
+      <textarea id="ai-instruction-input" class="dm-setting-input" rows="3" style="width:100%;resize:vertical;font-size:12px;line-height:1.45;" placeholder="In one sentence, plain English, what meaningfully changed? Skip cosmetic differences. Lead with the most important fact."></textarea>
+      <p style="font-size:11px;color:var(--text-tertiary);margin:4px 0 14px 0;line-height:1.5;">
+        Replaces the closing instruction line. Empty = use the built-in.<br>
+        <span style="font-family:var(--font-mono);font-size:10px;opacity:0.7;">Examples:<br>
+        • Summarize as a tweet (≤120 chars).<br>
+        • Output only the new price in dollars.<br>
+        • Translate the change to plain English in 5 words.<br>
+        • Highlight new job openings with role and salary.</span>
+      </p>
+
       <div style="display:flex;gap:8px;justify-content:flex-end;">
         <button id="ai-key-cancel" class="dm-btn">Cancel</button>
         <button id="ai-key-save" class="dm-btn check">Enable</button>
@@ -47,7 +58,7 @@
       <div class="dash-header-right">
         <button id="btn-sound" class="theme-toggle" title="Toggle notification sound"></button>
         <button id="btn-sync" class="theme-toggle" title="Sync monitor configs across devices via Chrome Sync"></button>
-        <button id="btn-ai" class="theme-toggle" title="AI change summaries (bring your own Anthropic API key)"></button>
+        <button id="btn-ai" class="header-text-btn" title="AI change summaries — bring your own LLM key"></button>
         <button id="btn-shortcuts" class="theme-toggle" title="Keyboard shortcuts (?)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </button>
@@ -139,6 +150,13 @@
               <div style="flex:1;">
                 <input id="detail-webhook" type="url" class="dm-setting-input" placeholder="https://hooks.slack.com/... or Discord/Zapier URL">
                 <span id="detail-webhook-status" class="dm-setting-hint">Slack/Discord/Zapier — fires JSON POST on change. Leave empty to skip.</span>
+              </div>
+            </div>
+            <div class="dm-setting" style="align-items:flex-start;">
+              <label class="dm-setting-label" style="padding-top:8px;">AI prompt</label>
+              <div style="flex:1;">
+                <textarea id="detail-ai-instruction" class="dm-setting-input" rows="2" style="resize:vertical;font-size:11px;line-height:1.5;" placeholder="(global instruction is used)"></textarea>
+                <span class="dm-setting-hint">Per-monitor override. Empty = use the global custom instruction (or the built-in).</span>
               </div>
             </div>
             <div class="dm-setting" style="align-items:flex-start;">

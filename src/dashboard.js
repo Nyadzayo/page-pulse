@@ -11,8 +11,9 @@ const soundOnIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const soundOffIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
 const syncOnIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
 const syncOffIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
-const aiOnIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>';
-const aiOffIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.45"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>';
+const aiSparkleSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>';
+const aiOnLabel = `${aiSparkleSvg}<span>AI On</span>`;
+const aiOffLabel = `${aiSparkleSvg}<span>Configure AI</span>`;
 
 let currentMonitorId = null;
 
@@ -111,8 +112,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   aiPresetSelect?.addEventListener('change', (e) => applyPreset(e.target.value));
 
   let aiOn = settings.aiSummaryEnabled === true && Boolean(settings.aiApiKey);
-  aiBtn.innerHTML = aiOn ? aiOnIcon : aiOffIcon;
-  aiBtn.title = aiOn ? 'AI summaries ON' : 'AI summaries OFF — click to configure';
+  function paintAiBtn() {
+    aiBtn.innerHTML = aiOn ? aiOnLabel : aiOffLabel;
+    aiBtn.classList.toggle('active', aiOn);
+    aiBtn.title = aiOn ? 'AI summaries ON — click to disable' : 'AI summaries OFF — click to configure or re-enable';
+  }
+  paintAiBtn();
+
+  const aiInstructionInput = document.getElementById('ai-instruction-input');
 
   function openAiDialog(currentSettings) {
     // Reset any error state from a previous open.
@@ -128,6 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (currentSettings.aiApiUrl) aiUrlInput.value = currentSettings.aiApiUrl;
     if (currentSettings.aiModel) aiModelInput.value = currentSettings.aiModel;
     aiKeyInput.value = currentSettings.aiApiKey || '';
+    if (aiInstructionInput) aiInstructionInput.value = currentSettings.aiSummaryInstruction || '';
     aiDialog.showModal();
     aiKeyInput.focus();
   }
@@ -137,8 +145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (aiOn) {
       await updateSettings({ aiSummaryEnabled: false });
       aiOn = false;
-      aiBtn.innerHTML = aiOffIcon;
-      aiBtn.title = 'AI summaries OFF — click to enable again';
+      paintAiBtn();
       return;
     }
     if (current.aiApiKey && current.aiApiUrl && current.aiModel) {
@@ -162,8 +169,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       await updateSettings({ aiSummaryEnabled: true });
       aiOn = true;
-      aiBtn.innerHTML = aiOnIcon;
-      aiBtn.title = 'AI summaries ON';
+      paintAiBtn();
       return;
     }
     openAiDialog(current);
@@ -221,6 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       aiApiKey: key,
       aiApiUrl: url,
       aiModel: model,
+      aiSummaryInstruction: aiInstructionInput ? aiInstructionInput.value : '',
     });
     aiOn = true;
     aiBtn.innerHTML = aiOnIcon;
@@ -375,6 +382,10 @@ async function selectMonitor(id) {
 
   // Keywords
   document.getElementById('detail-keywords').value = monitor.keywords || '';
+
+  // Per-monitor AI prompt override
+  const aiInstructionEl = document.getElementById('detail-ai-instruction');
+  if (aiInstructionEl) aiInstructionEl.value = monitor.aiSummaryInstruction || '';
 
   // Webhook URL
   const webhookEl = document.getElementById('detail-webhook');
@@ -803,12 +814,17 @@ function setupEventListeners() {
       const original = genBtn.innerHTML;
       genBtn.disabled = true;
       genBtn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg> Generating…';
+      const effectiveInstruction =
+        (monitor.aiSummaryInstruction || '').trim()
+        || (settings.aiSummaryInstruction || '').trim()
+        || undefined;
       try {
         const summary = await summarizeChange(monitor, entry, {
           provider: settings.aiProvider,
           apiKey: settings.aiApiKey,
           apiUrl: settings.aiApiUrl,
           model: settings.aiModel,
+          instruction: effectiveInstruction,
         });
         if (summary) {
           await updateHistoryEntry(currentMonitorId, ts, { summary });
@@ -845,6 +861,13 @@ function setupEventListeners() {
     if (!currentMonitorId) return;
     const value = document.getElementById('detail-ignore').value;
     await updateMonitor(currentMonitorId, { ignorePatterns: value });
+  });
+
+  // Per-monitor AI instruction — save on blur. Empty = use global.
+  document.getElementById('detail-ai-instruction')?.addEventListener('blur', async () => {
+    if (!currentMonitorId) return;
+    const value = document.getElementById('detail-ai-instruction').value;
+    await updateMonitor(currentMonitorId, { aiSummaryInstruction: value });
   });
 
   // Webhook URL — save on blur, validate inline.

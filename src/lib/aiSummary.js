@@ -27,6 +27,9 @@ const DEFAULT_MAX_TOKENS = 80;
 const DEFAULT_TIMEOUT_MS = 12000;
 const TRUNCATE_LEN = 800;
 
+export const DEFAULT_INSTRUCTION =
+  'In one sentence, plain English, what meaningfully changed? Skip cosmetic differences. Lead with the most important fact.';
+
 export const PROVIDER_PRESETS = Object.freeze([
   {
     id: 'anthropic',
@@ -101,9 +104,11 @@ function isValidApiUrl(u) {
   }
 }
 
-export function buildSummaryPrompt(monitor, change) {
+export function buildSummaryPrompt(monitor, change, instruction) {
   const oldText = truncate(change.old, TRUNCATE_LEN);
   const newText = truncate(change.new, TRUNCATE_LEN);
+  const trimmed = typeof instruction === 'string' ? instruction.trim() : '';
+  const closing = trimmed.length > 0 ? trimmed : DEFAULT_INSTRUCTION;
   return [
     `A webpage I am monitoring titled "${monitor.label}" just changed.`,
     'Old text:',
@@ -114,7 +119,7 @@ export function buildSummaryPrompt(monitor, change) {
     '"""',
     newText,
     '"""',
-    'In one sentence, plain English, what meaningfully changed? Skip cosmetic differences. Lead with the most important fact.',
+    closing,
   ].join('\n');
 }
 
@@ -181,7 +186,7 @@ export async function summarizeChange(monitor, change, opts = {}) {
   if (!isValidApiUrl(opts.apiUrl)) return null;
   const provider = opts.provider === AI_PROVIDERS.ANTHROPIC ? AI_PROVIDERS.ANTHROPIC : AI_PROVIDERS.OPENAI_COMPATIBLE;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const prompt = buildSummaryPrompt(monitor, change);
+  const prompt = buildSummaryPrompt(monitor, change, opts.instruction);
   const { headers, body } = buildRequest(provider, prompt, opts);
 
   const controller = new AbortController();

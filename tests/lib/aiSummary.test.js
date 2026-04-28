@@ -7,6 +7,7 @@ import {
   isAiEnabled,
   AI_PROVIDERS,
   PROVIDER_PRESETS,
+  DEFAULT_INSTRUCTION,
 } from '../../src/lib/aiSummary.js';
 
 describe('aiSummary', () => {
@@ -26,6 +27,43 @@ describe('aiSummary', () => {
       const longText = 'x'.repeat(5000);
       const prompt = buildSummaryPrompt(monitor, { old: longText, new: longText });
       expect(prompt.length).toBeLessThan(3000);
+    });
+
+    it('uses DEFAULT_INSTRUCTION when no custom instruction is given', () => {
+      const monitor = { label: 'L', url: 'u' };
+      const change = { old: 'a', new: 'b' };
+      const prompt = buildSummaryPrompt(monitor, change);
+      expect(prompt).toContain(DEFAULT_INSTRUCTION);
+    });
+
+    it('falls back to DEFAULT_INSTRUCTION when instruction is empty string', () => {
+      const monitor = { label: 'L', url: 'u' };
+      const prompt = buildSummaryPrompt(monitor, { old: 'a', new: 'b' }, '');
+      expect(prompt).toContain(DEFAULT_INSTRUCTION);
+    });
+
+    it('falls back to DEFAULT_INSTRUCTION when instruction is whitespace only', () => {
+      const monitor = { label: 'L', url: 'u' };
+      const prompt = buildSummaryPrompt(monitor, { old: 'a', new: 'b' }, '   \n\t  ');
+      expect(prompt).toContain(DEFAULT_INSTRUCTION);
+    });
+
+    it('replaces the closing instruction with the custom one', () => {
+      const monitor = { label: 'L', url: 'u' };
+      const custom = 'Output the new price in dollars only.';
+      const prompt = buildSummaryPrompt(monitor, { old: 'a', new: 'b' }, custom);
+      expect(prompt).toContain(custom);
+      expect(prompt).not.toContain(DEFAULT_INSTRUCTION);
+      // Boilerplate framing must remain.
+      expect(prompt).toContain('A webpage I am monitoring titled "L"');
+      expect(prompt).toContain('Old text:');
+      expect(prompt).toContain('New text:');
+    });
+
+    it('exports DEFAULT_INSTRUCTION matching the historical wording', () => {
+      expect(DEFAULT_INSTRUCTION).toContain('one sentence');
+      expect(DEFAULT_INSTRUCTION).toContain('plain English');
+      expect(DEFAULT_INSTRUCTION).toContain('most important fact');
     });
   });
 
@@ -133,6 +171,20 @@ describe('aiSummary', () => {
         provider: AI_PROVIDERS.ANTHROPIC, apiKey: 'sk', apiUrl: 'https://api.anthropic.com/v1/messages', model: 'claude-haiku-4-5',
       });
       expect(out).toBe('Anthropic summary.');
+    });
+
+    it('passes opts.instruction through to the request body user message', async () => {
+      const customInstruction = 'Output the new price in dollars ONLY.';
+      await summarizeChange({ label: 'L', url: 'u' }, { old: 'o', new: 'n' }, {
+        provider: AI_PROVIDERS.ANTHROPIC,
+        apiKey: 'sk',
+        apiUrl: 'https://api.anthropic.com/v1/messages',
+        model: 'claude-haiku-4-5',
+        instruction: customInstruction,
+      });
+      const body = JSON.parse(fetchSpy.mock.calls[0][1].body);
+      expect(body.messages[0].content).toContain(customInstruction);
+      expect(body.messages[0].content).not.toContain(DEFAULT_INSTRUCTION);
     });
   });
 

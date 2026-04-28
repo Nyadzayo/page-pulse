@@ -41,6 +41,15 @@ describe('makeMonitor factory', () => {
     expect(m.keywords).toBe('');
     expect(m.ignorePatterns).toBe('');
     expect(m.webhookUrl).toBe('');
+    expect(m.aiSummaryInstruction).toBe('');
+  });
+
+  it('persists a caller-provided aiSummaryInstruction through the factory', () => {
+    const m = makeMonitor(
+      { url: 'https://example.com', selector: '#x', baseline: 'a', aiSummaryInstruction: 'Output one tweet.' },
+      { tier: TIERS.FREE, now: Date.now() },
+    );
+    expect(m.aiSummaryInstruction).toBe('Output one tweet.');
   });
 
   it('persists a caller-provided webhookUrl through the factory', () => {

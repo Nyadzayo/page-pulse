@@ -47,6 +47,17 @@ describe('configSync', () => {
       expect(synced).not.toHaveProperty('unreadChangeCount');
       expect(synced).not.toHaveProperty('textFingerprint');
     });
+
+    it('excludes aiSummaryInstruction from synced fields (privacy guard)', () => {
+      const monitor = {
+        id: 'a', url: 'u', selector: '', xpath: '', label: 'L', intervalMs: 0,
+        keywords: '', ignorePatterns: '', renderMode: 'fetch', notifyMode: 'instant',
+        webhookUrl: '', active: true,
+        aiSummaryInstruction: 'PERSONAL: summarize for the legal team only',
+      };
+      const synced = selectSyncableFields(monitor);
+      expect(synced).not.toHaveProperty('aiSummaryInstruction');
+    });
   });
 
   describe('extractSyncableConfigs', () => {
