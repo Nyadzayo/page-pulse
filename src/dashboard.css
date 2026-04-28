@@ -468,6 +468,15 @@ html, body {
   min-height: 300px;
 }
 
+/* Defense-in-depth: even if the inline display:none on #monitor-detail
+   gets cleared accidentally, the body/dm-actions/dm-import-banner
+   should not appear unless a sibling .has-selection class is present
+   on #main-panel. The dashboard JS adds/removes that class in
+   selectMonitor / handleImport. */
+#main-panel:not(.has-selection):not(.has-import) #monitor-detail {
+  display: none !important;
+}
+
 .no-selection p {
   font-size: 13px;
   color: var(--text-tertiary);
@@ -754,17 +763,109 @@ html, body {
   color: var(--accent, #6366F1);
 }
 
+/* Dialog positioned at the right edge of the viewport, full height,
+   so it never collides with the dashboard's own action row. */
 .dm-dialog {
   border: none;
-  border-radius: 8px;
-  padding: 20px;
-  max-width: 420px;
+  border-radius: 12px 0 0 12px;
+  padding: 24px 28px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 100vh;
+  margin: 0 0 0 auto;
+  inset: 0 0 0 auto;
   background: var(--bg-surface, #1a1a1a);
   color: var(--text-primary);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.45);
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 .dm-dialog::backdrop {
   background: rgba(0, 0, 0, 0.55);
+}
+.dm-dialog-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+}
+.dm-dialog-lede {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: 0 0 20px 0;
+}
+.dm-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.dm-dialog-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.dm-dialog-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.dm-dialog-input:focus {
+  outline: none;
+  border-color: var(--accent, #6366F1);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+.dm-dialog-input-mono {
+  font-family: var(--font-mono, monospace);
+  font-size: 11.5px;
+}
+textarea.dm-dialog-input {
+  resize: vertical;
+  min-height: 64px;
+}
+.dm-dialog-hint {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  margin: 4px 0 0 0;
+}
+.dm-dialog-hint:empty {
+  display: none;
+}
+.dm-dialog-examples {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  opacity: 0.75;
+}
+.dm-dialog-examples li {
+  padding: 1px 0;
+}
+.dm-dialog-examples li::before {
+  content: "• ";
+  color: var(--accent, #6366F1);
+  margin-right: 2px;
+}
+.dm-dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-default);
 }
 
 .dm-url::after {

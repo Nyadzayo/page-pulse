@@ -313,7 +313,11 @@ async function selectMonitor(id) {
   currentMonitorId = id;
   const monitors = await getMonitors();
   const monitor = monitors[id];
-  if (!monitor) return;
+  if (!monitor) {
+    document.getElementById('main-panel')?.classList.remove('has-selection');
+    return;
+  }
+  document.getElementById('main-panel')?.classList.add('has-selection');
 
   // F5A — clear unread counter on view (debounced via storage write).
   if ((monitor.unreadChangeCount || 0) > 0) {
@@ -1296,6 +1300,7 @@ async function handleImport(encodedData) {
   // Hide the no-selection text
   document.getElementById('no-selection').style.display = 'none';
   document.getElementById('monitor-detail').style.display = 'block';
+  document.getElementById('main-panel')?.classList.add('has-import');
 
   document.getElementById('btn-import-add').addEventListener('click', async () => {
     // Request permission for the origin
@@ -1352,5 +1357,6 @@ async function handleImport(encodedData) {
     window.history.replaceState({}, '', 'dashboard.html');
     document.getElementById('no-selection').style.display = 'flex';
     document.getElementById('monitor-detail').style.display = 'none';
+    document.getElementById('main-panel')?.classList.remove('has-import');
   });
 }
