@@ -36,7 +36,7 @@ GREAT FOR
 
 OPTIONAL POWER FEATURES (off by default, fully opt-in)
 - Webhook actions — fire a JSON POST to Slack, Discord, Zapier, IFTTT, n8n, or any URL on every detected change. No PagePulse middleman.
-- AI change summaries — bring your own API key. Supports Anthropic Claude, NVIDIA's free tier, OpenAI, Groq, OpenRouter, and local Ollama. One-line plain-English explanations of what actually changed. Configurable global and per-monitor instructions.
+- AI change summaries — bring your own API key from any major LLM provider you already use, including free-tier options. One-line plain-English explanations of what actually changed. Configurable global and per-monitor instructions.
 - Cross-device sync — opt in to replicate monitor configs across your signed-in Chrome profile via Chrome's built-in encrypted sync. Page content and history stay local on each device.
 
 MORE FEATURES
@@ -54,7 +54,7 @@ MORE FEATURES
 PRIVACY
 Local-first by default. All baseline functionality runs entirely in your browser — PagePulse has no server. No accounts. No tracking. No analytics. Host access is requested per-site only when you create a monitor.
 
-The three optional power features above transmit data only to destinations you choose: Chrome's built-in encrypted Sync (Google), your selected LLM provider with your own API key, and webhook URLs you paste. PagePulse never proxies, intercepts, or stores any of that traffic. Each feature is off until you turn it on.
+The three optional power features above transmit data only to destinations you choose: Chrome's built-in encrypted Sync, the LLM provider you select with your own API key, and webhook URLs you paste. PagePulse never proxies, intercepts, or stores any of that traffic. Each feature is off until you turn it on.
 
 FREE
 10 monitors, 5-minute checks, 30-day history. All features included. No hidden limits.
