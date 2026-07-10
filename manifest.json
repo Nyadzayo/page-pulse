@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PagePulse — Website Change Monitor",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Track text changes on webpage elements. Get notified when prices drop, jobs post, or content updates.",
   "permissions": [
     "alarms",
@@ -20,7 +20,7 @@
     "type": "module"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com"
+    "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "action": {
     "default_popup": "popup.html",
