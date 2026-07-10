@@ -485,6 +485,33 @@ html, body {
   line-height: 1.6;
 }
 
+/* Zero-monitor variant: directs the user to the one action that matters. */
+.no-selection-empty {
+  max-width: 340px;
+  text-align: center;
+}
+.no-selection-empty p {
+  max-width: none;
+  margin-bottom: 10px;
+}
+.no-selection-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.no-selection-hint {
+  font-size: 12px;
+}
+
+/* Quality floor: honor the OS-level reduced-motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* ─── Monitor Detail Header ──────────────────────────────────────────────────── */
 .dm-header {
   display: flex;
@@ -1468,6 +1495,18 @@ textarea.dm-setting-input {
   flex-shrink: 0;
   color: var(--accent);
 }
+.dash-footer-link {
+  margin-left: auto;
+  border: none;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.dash-footer-link:hover { color: var(--text-secondary); }
 
 /* ─── Theme Toggle ─────────────────────────────────────────────────────────── */
 .theme-toggle {

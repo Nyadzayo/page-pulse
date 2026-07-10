@@ -407,6 +407,26 @@ body {
   outline-offset: 2px;
 }
 
+/* Quality floor: honor the OS-level reduced-motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Inline reason shown when Add Monitor can't proceed (unsupported page,
+   monitor limit) — replaces the old silent no-op. */
+.popup-status {
+  padding: 8px 14px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-default);
+  color: var(--amber, #D97706);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .popup-btn.primary {
   background: var(--accent);
   color: #000;

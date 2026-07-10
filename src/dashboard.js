@@ -7,6 +7,7 @@ import { buildRssFeed, monitorToFeedItems } from './lib/rssFeed.js';
 import { INTERVALS, TIER_LIMITS, DIFF_MODES, NOTIFY_MODES, STATUS } from './lib/constants.js';
 import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
 import { playChime } from './lib/sound.js';
+import { trackEvent, trackOnce } from './lib/telemetry.js';
 
 const soundOnIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
 const soundOffIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
@@ -231,8 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       aiSummaryInstruction: aiInstructionInput ? aiInstructionInput.value : '',
     });
     aiOn = true;
-    aiBtn.innerHTML = aiOnIcon;
-    aiBtn.title = 'AI summaries ON';
+    paintAiBtn();
     aiPresetNotes.style.color = '';
     aiDialog.close();
     // Refresh the current monitor view so any "Generate summary" buttons
@@ -240,8 +240,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (currentMonitorId) await selectMonitor(currentMonitorId);
   });
 
+  {
+    const allMonitors = await getMonitors();
+    trackEvent('extension_opened', { surface: 'dashboard', monitor_count: Object.keys(allMonitors).length });
+  }
+
+  // Version label mirrors the manifest — a hardcoded "v1.0" drifts.
+  try {
+    const versionEl = document.querySelector('.dash-version');
+    if (versionEl) versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
+  } catch {}
+
   await loadSidebar();
   setupEventListeners();
+  setupTelemetryToggle();
   await maybeShowOnboarding();
   const params = new URLSearchParams(window.location.search);
   const targetId = params.get('monitor');
@@ -274,6 +286,23 @@ async function loadSidebar() {
   const arr = Object.values(monitors).sort((a, b) => b.createdAt - a.createdAt);
   const activeCount = arr.filter(m => m.active).length;
   document.getElementById('sidebar-count').textContent = `${activeCount} / ${limits.maxMonitors}`;
+
+  // The idle panel's job changes with state: with zero monitors it must
+  // direct the user to the one action that matters (create a monitor
+  // from a real page); with monitors it just explains the sidebar.
+  const noSelection = document.getElementById('no-selection');
+  if (noSelection) {
+    if (arr.length === 0) {
+      noSelection.innerHTML = `
+        <div class="no-selection-empty">
+          <p class="no-selection-title">No monitors yet</p>
+          <p>Open any website, click the PagePulse icon in your toolbar, then click the part of the page you want to watch — a price, a headline, a stock status.</p>
+          <p class="no-selection-hint">Checks run in the background. You'll get a notification when it changes.</p>
+        </div>`;
+    } else {
+      noSelection.innerHTML = '<p>Select a monitor from the sidebar to view details and change history.</p>';
+    }
+  }
 
   const list = document.getElementById('sidebar-list');
   if (arr.length === 0) {
@@ -322,6 +351,7 @@ async function selectMonitor(id) {
   // F5A — clear unread counter on view (debounced via storage write).
   if ((monitor.unreadChangeCount || 0) > 0) {
     try {
+      trackEvent('change_viewed', { unread_count: monitor.unreadChangeCount });
       await updateMonitor(id, { unreadChangeCount: 0 });
       monitor.unreadChangeCount = 0;
       try { chrome.runtime.sendMessage({ action: 'recompute_badge' }, () => void chrome.runtime.lastError); } catch {}
@@ -582,19 +612,50 @@ async function maybeShowOnboarding() {
   if (!card) return;
   const show = await shouldShowOnboarding();
   card.style.display = show ? '' : 'none';
+  if (show) trackOnce('onboarding_started', { surface: 'dashboard' });
 }
 
 async function dismissOnboarding() {
   const card = document.getElementById('onboarding-card');
   await markOnboardingSeen();
+  trackOnce('onboarding_completed', { surface: 'dashboard' });
   if (!card) return;
   card.classList.add('dismissing');
   setTimeout(() => { card.style.display = 'none'; card.classList.remove('dismissing'); }, 320);
 }
 
+// "Send test notification" — safe immediate-value demo. Clearly labelled a
+// test; also doubles as a delivery check (macOS/Windows frequently have
+// Chrome notifications muted at the OS level, which otherwise fails silently).
+async function sendTestNotification() {
+  const hint = document.getElementById('test-notification-hint');
+  trackEvent('notification_sent', { kind: 'test', count: 1 });
+  try {
+    const id = await chrome.notifications.create(`pagepulse-test-${Date.now()}`, {
+      type: 'basic',
+      title: 'PagePulse test notification',
+      message: 'This is what a change alert looks like. (Test only — no change was detected.)',
+      iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
+      priority: 2,
+    });
+    if (hint) {
+      hint.textContent = id
+        ? 'Sent! If you didn’t see it, check that Chrome notifications are allowed in your OS settings.'
+        : 'Could not create the notification — check Chrome’s notification permissions.';
+      hint.style.display = 'block';
+    }
+  } catch (e) {
+    if (hint) {
+      hint.textContent = `Notification failed (${e.message || e}). Check Chrome's notification settings.`;
+      hint.style.display = 'block';
+    }
+  }
+}
+
 function setupEventListeners() {
   document.getElementById('btn-onboarding-dismiss')?.addEventListener('click', dismissOnboarding);
   document.getElementById('btn-onboarding-dismiss-x')?.addEventListener('click', dismissOnboarding);
+  document.getElementById('btn-test-notification')?.addEventListener('click', sendTestNotification);
 
   document.getElementById('sidebar-list').addEventListener('click', e => {
     const item = e.target.closest('.ds-item');
@@ -652,6 +713,7 @@ function setupEventListeners() {
     if (!monitor) return;
     const newActive = !monitor.active;
     await updateMonitor(currentMonitorId, { active: newActive });
+    trackEvent('monitor_paused', { surface: 'dashboard', paused: !newActive });
     await selectMonitor(currentMonitorId);
     await loadSidebar();
   });
@@ -770,12 +832,25 @@ function setupEventListeners() {
     if (!currentMonitorId) return;
     const monitors = await getMonitors();
     const monitor = monitors[currentMonitorId];
-    if (monitor) showShareModal(monitor);
+    if (monitor) {
+      trackEvent('share_clicked', { action: 'open' });
+      showShareModal(monitor);
+    }
   });
 
   document.getElementById('btn-delete').addEventListener('click', async () => {
     if (!currentMonitorId) return;
     if (!confirm('Delete this monitor and its history?')) return;
+    try {
+      const monitors = await getMonitors();
+      const m = monitors[currentMonitorId];
+      if (m) {
+        trackEvent('monitor_deleted', {
+          age_days: Math.floor((Date.now() - (m.createdAt || Date.now())) / 86400000),
+          change_count: m.changeCount || 0,
+        });
+      }
+    } catch {}
     await deleteMonitor(currentMonitorId);
     currentMonitorId = null;
     document.getElementById('monitor-detail').style.display = 'none';
@@ -788,6 +863,7 @@ function setupEventListeners() {
     if (!btn || btn.disabled || !currentMonitorId) return;
     const ms = parseInt(btn.dataset.ms);
     await updateMonitor(currentMonitorId, { intervalMs: ms });
+    trackEvent('monitor_edited', { field: 'interval' });
     await selectMonitor(currentMonitorId);
   });
 
@@ -985,6 +1061,7 @@ function setupEventListeners() {
   const saveKeywords = async () => {
     if (!currentMonitorId) return;
     await updateMonitor(currentMonitorId, { keywords: keywordsInput.value });
+    trackEvent('monitor_edited', { field: 'keywords' });
   };
   keywordsInput.addEventListener('blur', saveKeywords);
   keywordsInput.addEventListener('keydown', async (e) => {
@@ -1052,6 +1129,7 @@ function setupEventListeners() {
     if (!btn || !currentMonitorId) return;
     const mode = btn.dataset.notify;
     await updateMonitor(currentMonitorId, { notifyMode: mode });
+    trackEvent('monitor_edited', { field: 'notify_mode' });
     await selectMonitor(currentMonitorId);
   });
 
@@ -1061,6 +1139,7 @@ function setupEventListeners() {
     if (!btn || !currentMonitorId) return;
     const mode = btn.dataset.render;
     await updateMonitor(currentMonitorId, { renderMode: mode });
+    trackEvent('monitor_edited', { field: 'render_mode' });
     await selectMonitor(currentMonitorId);
   });
 
@@ -1071,6 +1150,28 @@ function setupEventListeners() {
     const mode = btn.dataset.mode;
     await updateMonitor(currentMonitorId, { diffMode: mode });
     await selectMonitor(currentMonitorId);
+  });
+}
+
+// Footer toggle for anonymous usage stats. Visible regardless of whether
+// telemetry credentials are configured — the promise ("you can turn it
+// off") must hold before the user can verify it matters.
+async function setupTelemetryToggle() {
+  const btn = document.getElementById('btn-telemetry');
+  if (!btn) return;
+  const paint = (enabled) => {
+    btn.textContent = enabled ? 'Anonymous usage stats: On' : 'Anonymous usage stats: Off';
+    btn.title = enabled
+      ? 'Feature-usage counts and reliability signals only — never page URLs, content, or selectors. Click to turn off.'
+      : 'Usage stats are off. Click to turn on.';
+  };
+  const settings = await getSettings();
+  let enabled = settings.telemetryEnabled !== false;
+  paint(enabled);
+  btn.addEventListener('click', async () => {
+    enabled = !enabled;
+    await updateSettings({ telemetryEnabled: enabled });
+    paint(enabled);
   });
 }
 
@@ -1273,12 +1374,14 @@ function showShareModal(monitor) {
   overlay.querySelector('#share-copy-link').addEventListener('click', async () => {
     const input = overlay.querySelector('.share-link-input');
     await navigator.clipboard.writeText(input.value);
+    trackEvent('share_clicked', { action: 'copy_link' });
     overlay.querySelector('#share-copy-link').textContent = 'Copied!';
     setTimeout(() => overlay.querySelector('#share-copy-link').textContent = 'Copy Link', 2000);
   });
 
   overlay.querySelector('#share-copy-text').addEventListener('click', async () => {
     await navigator.clipboard.writeText(shareText);
+    trackEvent('share_clicked', { action: 'copy_text' });
     overlay.querySelector('#share-copy-text').textContent = 'Copied!';
     setTimeout(() => overlay.querySelector('#share-copy-text').textContent = 'Copy Text', 2000);
   });

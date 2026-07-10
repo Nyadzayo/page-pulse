@@ -3,9 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>PagePulse Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
@@ -67,13 +65,13 @@
         <span class="dash-brand-name">PagePulse</span>
       </div>
       <div class="dash-header-right">
-        <button id="btn-sound" class="theme-toggle" title="Toggle notification sound"></button>
-        <button id="btn-sync" class="theme-toggle" title="Sync monitor configs across devices via Chrome Sync"></button>
+        <button id="btn-sound" class="theme-toggle" title="Toggle notification sound" aria-label="Toggle notification sound"></button>
+        <button id="btn-sync" class="theme-toggle" title="Sync monitor configs across devices via Chrome Sync" aria-label="Toggle cross-device sync"></button>
         <button id="btn-ai" class="header-text-btn" title="AI change summaries — bring your own LLM key"></button>
-        <button id="btn-shortcuts" class="theme-toggle" title="Keyboard shortcuts (?)">
+        <button id="btn-shortcuts" class="theme-toggle" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </button>
-        <button id="btn-theme" class="theme-toggle" title="Toggle theme"></button>
+        <button id="btn-theme" class="theme-toggle" title="Toggle theme" aria-label="Toggle light or dark theme"></button>
         <span class="dash-version">v1.0</span>
       </div>
     </header>
@@ -98,7 +96,11 @@
             <li><span class="onboarding-step-num">2</span> Click the element you want to track — a price, a job count, anything.</li>
             <li><span class="onboarding-step-num">3</span> We&rsquo;ll check on a schedule and notify you when it changes.</li>
           </ol>
-          <button id="btn-onboarding-dismiss" class="dm-btn check onboarding-cta">Got it</button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button id="btn-onboarding-dismiss" class="dm-btn check onboarding-cta">Got it</button>
+            <button id="btn-test-notification" class="dm-btn" title="Preview what a PagePulse alert looks like and confirm notifications reach you">Send test notification</button>
+          </div>
+          <p id="test-notification-hint" class="dm-setting-hint" style="display:none;margin-top:8px;"></p>
         </div>
 
         <div id="no-selection" class="no-selection">
@@ -231,8 +233,9 @@
     <footer class="dash-footer">
       <span class="privacy-badge">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Local only — your data never leaves your device
+        Local first — page content never leaves your device
       </span>
+      <button id="btn-telemetry" class="dash-footer-link" type="button"></button>
     </footer>
   </div>
 

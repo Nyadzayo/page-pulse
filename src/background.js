@@ -13,7 +13,8 @@ import {
   pushConfigsToSync,
   pullConfigsFromSync,
 } from './lib/configSync.js';
-import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, NOTIFY_MODES, RENDER_MODES } from './lib/constants.js';
+import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, HEARTBEAT_ALARM_NAME, HEARTBEAT_PERIOD_MINUTES, NOTIFY_MODES, RENDER_MODES } from './lib/constants.js';
+import { trackEvent, trackOnce, trackError, getHoursSinceInstall, INSTALLED_AT_KEY } from './lib/telemetry.js';
 
 // SPA / JS-rendered pages are loaded into a hidden iframe inside the
 // chrome.offscreen document (IFRAME_SCRIPTING reason, Chrome 116+).
@@ -25,9 +26,10 @@ import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_K
 // attention" notification.
 
 // --- Alarm Setup + Context Menu ---
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
   chrome.alarms.create(DIGEST_ALARM_NAME, { periodInMinutes: 60 });
+  chrome.alarms.create(HEARTBEAT_ALARM_NAME, { periodInMinutes: HEARTBEAT_PERIOD_MINUTES });
 
   // Right-click context menu
   chrome.contextMenus.create({
@@ -36,18 +38,35 @@ chrome.runtime.onInstalled.addListener(async () => {
     contexts: ['all'],
   });
 
+  const version = chrome.runtime.getManifest().version;
+  if (details?.reason === 'install') {
+    await chrome.storage.local.set({ [INSTALLED_AT_KEY]: Date.now() });
+    trackEvent('extension_installed', { version });
+    // Fresh install: open the dashboard so the onboarding card is actually
+    // seen. Before this, nothing happened after install and the first-run
+    // guide lived on a page most users never reached.
+    try {
+      await chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html?welcome=1') });
+    } catch (e) {
+      console.error('[PagePulse] Welcome tab failed:', e);
+    }
+  } else if (details?.reason === 'update') {
+    trackEvent('extension_updated', { version });
+  }
+
   // Bring legacy monitors up to the current schema.
-  try { await runMigrations(); } catch (e) { console.error('[PagePulse] Migration failed:', e); }
+  try { await runMigrations(); } catch (e) { console.error('[PagePulse] Migration failed:', e); trackError('migration', e); }
 
   // Pull synced configs into local on first install / extension reload.
-  try { await pullAndMergeSync(); } catch (e) { console.error('[PagePulse] sync pull failed:', e); }
+  try { await pullAndMergeSync(); } catch (e) { console.error('[PagePulse] sync pull failed:', e); trackError('sync_pull', e); }
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
   chrome.alarms.create(DIGEST_ALARM_NAME, { periodInMinutes: 60 });
-  try { await runMigrations(); } catch (e) { console.error('[PagePulse] Migration failed:', e); }
-  try { await pullAndMergeSync(); } catch (e) { console.error('[PagePulse] sync pull failed:', e); }
+  chrome.alarms.create(HEARTBEAT_ALARM_NAME, { periodInMinutes: HEARTBEAT_PERIOD_MINUTES });
+  try { await runMigrations(); } catch (e) { console.error('[PagePulse] Migration failed:', e); trackError('migration', e); }
+  try { await pullAndMergeSync(); } catch (e) { console.error('[PagePulse] sync pull failed:', e); trackError('sync_pull', e); }
 });
 
 // --- Offscreen Document Management ---
@@ -112,9 +131,37 @@ async function offscreenRenderExtract(url, queries) {
 
 // --- Tick Handler ---
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === ALARM_NAME) await runTick();
-  if (alarm.name === DIGEST_ALARM_NAME) await runDigest();
+  if (alarm.name === ALARM_NAME) await runTick().catch((e) => { console.error('[PagePulse] Tick failed:', e); trackError('tick', e); });
+  if (alarm.name === DIGEST_ALARM_NAME) await runDigest().catch((e) => { console.error('[PagePulse] Digest failed:', e); trackError('digest', e); });
+  if (alarm.name === HEARTBEAT_ALARM_NAME) await sendHeartbeat().catch(() => {});
 });
+
+// Daily snapshot of monitor fleet health. This single event answers the
+// retention questions the funnel events can't: is the user still getting
+// value (healthy active monitors) even if they never open the popup?
+async function sendHeartbeat() {
+  const monitors = Object.values(await getMonitors());
+  if (monitors.length === 0) return;
+  const active = monitors.filter((m) => m.active);
+  const broken = active.filter((m) => m.status === STATUS.BROKEN || m.status === STATUS.PERMISSION_REVOKED);
+  const now = Date.now();
+  const healthy = active.filter((m) =>
+    m.status === STATUS.OK &&
+    m.lastChecked !== null &&
+    now - m.lastChecked <= (m.intervalMs || 3600000) * 3,
+  );
+  const stored = await chrome.storage.local.get(INSTALLED_AT_KEY);
+  const installedAt = stored[INSTALLED_AT_KEY];
+  await trackEvent('heartbeat', {
+    monitors_total: monitors.length,
+    monitors_active: active.length,
+    monitors_paused: monitors.length - active.length,
+    monitors_healthy: healthy.length,
+    monitors_broken: broken.length,
+    days_since_install: installedAt ? Math.floor((now - installedAt) / 86400000) : null,
+    version: chrome.runtime.getManifest().version,
+  });
+}
 
 async function runTick() {
   const monitors = await getMonitors();
@@ -128,6 +175,9 @@ async function runTick() {
   const urlGroups = groupByUrl(due);
   const urlsToProcess = limitUrlBatch(urlGroups);
   const changes = [];
+  // Per-tick telemetry aggregates. One event per tick, never per monitor —
+  // keeps volume low and avoids leaking per-site cadence patterns.
+  const tickStats = { checks: 0, failures: 0 };
 
   for (const url of urlsToProcess) {
     const monitorsForUrl = urlGroups[url];
@@ -171,6 +221,8 @@ async function runTick() {
         for (const m of monitorsForUrl) {
           const result = { monitorId: m.id, text: null, matchedBy: null };
           const outcome = evaluateCheck(m, result, now);
+          tickStats.checks += 1;
+          tickStats.failures += 1;
           await updateMonitor(m.id, outcome.monitorUpdates);
         }
         continue;
@@ -189,6 +241,8 @@ async function runTick() {
       // with empty strings.
       const isEmptyExtraction = result.text === null && result.matchedBy === null;
       const outcome = evaluateCheck(monitor, isEmptyExtraction ? null : result, now);
+      tickStats.checks += 1;
+      if (outcome.monitorUpdates.consecutiveErrors > 0) tickStats.failures += 1;
 
       if (result.matchedBy === 'fingerprint' && result.recoveredSelector) {
         console.log(`[PagePulse] Selector recovered for "${monitor.label}": ${monitor.selector} → ${result.recoveredSelector}`);
@@ -221,6 +275,8 @@ async function runTick() {
       if (shouldFireBrokenNotification(monitor, outcome.monitorUpdates)) {
         try {
           await createBrokenMonitorNotification({ ...monitor, ...outcome.monitorUpdates });
+          trackEvent('monitor_check_failed', { reason: 'selector_broken' });
+          trackEvent('notification_sent', { kind: 'broken', count: 1 });
         } catch (e) {
           console.error('[PagePulse] Broken notification failed:', e);
         }
@@ -228,6 +284,18 @@ async function runTick() {
 
       await updateMonitor(monitor.id, outcome.monitorUpdates);
     }
+  }
+
+  if (tickStats.checks > 0) {
+    trackEvent('monitor_check_completed', {
+      checks: tickStats.checks,
+      failures: tickStats.failures,
+      changes: changes.length,
+    });
+  }
+  if (changes.length > 0) {
+    trackEvent('change_detected', { count: changes.length });
+    trackOnce('first_change_detected', { hours_since_install: await getHoursSinceInstall() });
   }
 
   // Fire notifications (before closing offscreen — sound plays through it)
@@ -254,6 +322,7 @@ async function runTick() {
         // Ensure offscreen is open for sound playback
         await ensureOffscreen();
         await notifyBatch(instantChanges, settings.soundEnabled !== false);
+        trackEvent('notification_sent', { kind: 'change', count: instantChanges.length });
         console.log(`[PagePulse] Notifications fired`);
         // Give sound time to play before closing
         setTimeout(closeOffscreen, 2000);
@@ -298,6 +367,7 @@ async function runDigest() {
       iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
       priority: 2,
     });
+    trackEvent('notification_sent', { kind: 'digest', count: changeCount });
   } catch (e) {
     console.error('[PagePulse] Digest notification failed:', e);
   }
@@ -320,6 +390,11 @@ async function runDigest() {
 // --- Notification Click Handler ---
 chrome.notifications.onClicked.addListener((notificationId) => {
   const dashboardUrl = chrome.runtime.getURL('dashboard.html');
+  const kind = notificationId.startsWith('pagepulse-broken-') ? 'broken'
+    : notificationId.startsWith('pagepulse-digest-') ? 'digest'
+    : notificationId.includes('batch') ? 'batch'
+    : 'change';
+  trackEvent('notification_clicked', { kind });
   if (notificationId.startsWith('pagepulse-broken-')) {
     // H1 — broken-monitor notification: open dashboard with a
     // ?action=reselect prompt for that monitor.
@@ -451,6 +526,7 @@ async function handleCreateMonitor(data) {
   const limits = TIER_LIMITS[settings.tier];
 
   if (activeCount >= limits.maxMonitors) {
+    trackEvent('monitor_creation_failed', { reason: 'limit_reached', surface: 'content' });
     return { success: false, reason: 'limit_reached' };
   }
 
@@ -471,10 +547,27 @@ async function handleCreateMonitor(data) {
   }
   try { await chrome.storage.local.remove('pendingRenderMode'); } catch {}
 
-  const monitor = makeMonitor(data, { tier: settings.tier, now: Date.now() });
+  let monitor;
+  try {
+    monitor = makeMonitor(data, { tier: settings.tier, now: Date.now() });
+  } catch (e) {
+    trackEvent('monitor_creation_failed', { reason: 'invalid_input', surface: 'content' });
+    trackError('create_monitor', e);
+    return { success: false, reason: 'invalid_input' };
+  }
   monitor.renderMode = renderMode;
 
   await saveMonitor(monitor);
+  trackEvent('monitor_created', {
+    render_mode: renderMode,
+    interval_minutes: Math.round(monitor.intervalMs / 60000),
+    monitor_count: activeCount + 1,
+    via: data.via || 'selector',
+  });
+  trackOnce('first_monitor_created', {
+    hours_since_install: await getHoursSinceInstall(),
+    render_mode: renderMode,
+  });
   return { success: true, monitor };
 }
 

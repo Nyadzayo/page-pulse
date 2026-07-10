@@ -102,6 +102,14 @@
   }
 
   // --- Click to select ---
+  function intervalLabel(ms) {
+    if (!ms) return 'on a schedule';
+    const mins = Math.round(ms / 60000);
+    if (mins < 60) return `every ${mins} min`;
+    const hrs = Math.round(mins / 60);
+    return hrs === 1 ? 'every hour' : `every ${hrs} hours`;
+  }
+
   function onClick(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -109,13 +117,22 @@
 
     const el = highlighted;
     const url = window.location.href;
+    const baseline = el.textContent.trim();
+
+    // Empty elements produce monitors that can never diff meaningfully and
+    // fire a spurious "change" on the first non-empty read. Reject up front
+    // and keep the selection overlay active so the user can pick again.
+    if (!baseline) {
+      showToast('That element has no text to monitor — click one with visible text.', null, true);
+      return;
+    }
 
     const data = {
       url,
       selector: generateSelector(el),
       xpath: generateXPath(el),
-      textFingerprint: el.textContent.trim().substring(0, 100),
-      baseline: el.textContent.trim(),
+      textFingerprint: baseline.substring(0, 100),
+      baseline,
       label: `${el.tagName.toLowerCase()} on ${window.location.hostname}`,
     };
 
@@ -124,9 +141,15 @@
       void chrome.runtime.lastError; // suppress if SW inactive
       cleanup();
       if (response?.success) {
-        showToast('Monitor added — checking every hour', response.monitor?.id);
+        // Echo what was captured so the user can verify the selection took,
+        // and set an honest expectation for when the first check runs.
+        const preview = baseline.length > 60 ? `${baseline.substring(0, 60)}…` : baseline;
+        showToast(
+          `Monitoring "${preview}" — checking ${intervalLabel(response.monitor?.intervalMs)}, first check within a minute.`,
+          response.monitor?.id
+        );
       } else if (response?.reason === 'limit_reached') {
-        showToast('Monitor limit reached. Upgrade to Pro for more.', null, true);
+        showToast('Monitor limit reached — pause or delete one in the dashboard first.', null, true);
       } else {
         showToast('Failed to create monitor. Please try again.', null, true);
       }

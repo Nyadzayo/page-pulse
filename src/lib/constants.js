@@ -50,7 +50,8 @@ export const STORAGE_KEYS = {
 export const DEFAULT_SETTINGS = {
   tier: TIERS.FREE,
   notificationsEnabled: true,
-  soundEnabled: true,
+  // Off by default — notification sound is opt-in via the dashboard toggle.
+  soundEnabled: false,
   syncEnabled: false,
   aiSummaryEnabled: false,
   aiProvider: 'openai_compatible',
@@ -59,6 +60,10 @@ export const DEFAULT_SETTINGS = {
   aiModel: '',
   aiSummaryInstruction: '',
   firstRunSeen: false,
+  // Anonymous usage statistics (see lib/telemetry.js). Only takes effect
+  // once telemetryConfig.js credentials are set; user-toggleable in the
+  // dashboard footer.
+  telemetryEnabled: true,
 };
 
 export const DIFF_MODES = {
@@ -79,6 +84,12 @@ export const DIGEST_INTERVALS = [
 ];
 
 export const DIGEST_ALARM_NAME = 'pagepulse-digest';
+
+// Daily telemetry heartbeat — the source for "weekly users with a healthy
+// monitor", the product's real retention metric (popup DAU is meaningless
+// for a background monitoring tool).
+export const HEARTBEAT_ALARM_NAME = 'pagepulse-heartbeat';
+export const HEARTBEAT_PERIOD_MINUTES = 1440;
 
 // All intervals available to everyone for free launch
 export const INTERVALS = [

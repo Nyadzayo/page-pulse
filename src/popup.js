@@ -1,9 +1,16 @@
 import { getMonitors, getSettings, updateMonitor } from './lib/storage.js';
 import { TIER_LIMITS } from './lib/constants.js';
 import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
+import { trackEvent } from './lib/telemetry.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+    // Version label mirrors the manifest — a hardcoded "v1.0" drifts.
+    try {
+      const versionEl = document.querySelector('.popup-version');
+      if (versionEl) versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
+    } catch {}
+
     // Theme
     initTheme();
     const themeBtn = document.getElementById('btn-theme');
@@ -21,6 +28,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const limits = TIER_LIMITS[settings.tier];
     const monitorArr = Object.values(monitors);
 
+    trackEvent('extension_opened', { surface: 'popup', monitor_count: monitorArr.length });
+
     // ── Smart flow: zero monitors + permission already granted → skip popup ──
     if (monitorArr.length === 0) {
       try {
@@ -29,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           const origin = new URL(tab.url).origin;
           const hasPermission = await chrome.permissions.contains({ origins: [`${origin}/*`] });
           if (hasPermission) {
+            trackEvent('monitor_creation_started', { surface: 'popup_auto' });
             await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
             window.close();
             return;
@@ -100,6 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (!monitor) return;
           const newActive = !monitor.active;
           await updateMonitor(id, { active: newActive });
+          trackEvent('monitor_paused', { surface: 'popup', paused: !newActive });
           toggle.className = `pm-toggle ${newActive ? 'on' : 'off'}`;
           monitors[id].active = newActive;
 
@@ -151,14 +162,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ── Add Monitor ──
+    // Silent no-ops here were an activation killer: clicking "Add Monitor"
+    // on a new-tab page or at the monitor limit did nothing, with no
+    // explanation. Surface the reason inline instead.
+    const statusEl = document.getElementById('popup-status');
+    const showStatus = (msg) => {
+      if (!statusEl) return;
+      statusEl.textContent = msg;
+      statusEl.style.display = 'block';
+    };
+
     document.getElementById('btn-add').addEventListener('click', async () => {
       try {
+        trackEvent('monitor_creation_started', { surface: 'popup' });
         const currentMonitors = await getMonitors();
         const activeCount = Object.values(currentMonitors).filter(m => m.active).length;
-        if (activeCount >= limits.maxMonitors) return;
+        if (activeCount >= limits.maxMonitors) {
+          trackEvent('monitor_creation_failed', { reason: 'limit_reached', surface: 'popup' });
+          showStatus(`Monitor limit reached (${limits.maxMonitors}). Pause or delete one to add another.`);
+          return;
+        }
 
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tab?.id || !isMonitorablePage(tab.url)) return;
+        if (!tab?.id || !isMonitorablePage(tab.url)) {
+          trackEvent('monitor_creation_failed', { reason: 'unsupported_page', surface: 'popup' });
+          showStatus('This page can’t be monitored. Open a normal website (http/https) and try again.');
+          return;
+        }
 
         const origin = new URL(tab.url).origin;
         const hasPermission = await chrome.permissions.contains({ origins: [`${origin}/*`] });
