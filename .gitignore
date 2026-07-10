@@ -1,3 +1,9 @@
 node_modules/
 dist/
 .DS_Store
+# Local telemetry credentials (see .env.example) — never commit. Built
+# release zips embed those credentials, so keep new zips out of git too.
+.env
+pagepulse-v1.1*.zip
+pagepulse-v1.2*.zip
+pagepulse-v2*.zip

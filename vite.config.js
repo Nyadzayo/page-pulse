@@ -4,6 +4,10 @@ import { copyFileSync, mkdirSync, existsSync, cpSync } from 'fs';
 
 export default defineConfig({
   root: 'src',
+  // .env lives at the repo root, not in src/ (the Vite root) — without
+  // this, VITE_TELEMETRY_* would silently resolve to empty strings and
+  // telemetry would no-op in every build.
+  envDir: __dirname,
   build: {
     outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,

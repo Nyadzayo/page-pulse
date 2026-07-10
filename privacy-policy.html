@@ -27,7 +27,7 @@
 <body>
 
 <h1>PagePulse Privacy Policy</h1>
-<p class="subtitle">Effective date: April 28, 2026 &middot; Last updated: April 28, 2026 (v1.3 — adds opt-in features)</p>
+<p class="subtitle">Effective date: April 28, 2026 &middot; Last updated: July 11, 2026 (v1.4 — adds anonymous usage statistics disclosure)</p>
 
 <div class="badge">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -47,13 +47,17 @@
 <p>PagePulse does <strong>not</strong> collect, transmit, or store:</p>
 <ul>
   <li>Personal information (name, email, address, phone number)</li>
-  <li>Browsing history or browsing activity</li>
+  <li>Browsing history or browsing activity — the URLs you monitor and the page content you track <strong>never</strong> leave your device as part of usage statistics</li>
   <li>Cookies or authentication tokens</li>
-  <li>Analytics, telemetry, or usage tracking data</li>
   <li>Financial or payment information</li>
   <li>Location data</li>
   <li>Any data to external servers, APIs, or cloud services operated by PagePulse</li>
 </ul>
+
+<h3>2.1 Anonymous usage statistics (can be turned off)</h3>
+<p>To understand which features are used and whether monitoring is working reliably, PagePulse sends <strong>anonymous usage statistics</strong> to Google Analytics. You can turn this off at any time via the &ldquo;Anonymous usage stats&rdquo; toggle in the dashboard footer.</p>
+<p>What is sent: event counts and reliability signals only &mdash; for example &ldquo;a monitor was created&rdquo;, &ldquo;a check ran and succeeded/failed&rdquo;, &ldquo;a notification was clicked&rdquo;, the number of active monitors, and error categories. Events are keyed to a <strong>random identifier</strong> generated on install that is not connected to you, your Google account, or any other service.</p>
+<p>What is <strong>never</strong> sent, enforced by an allowlist in the extension&rsquo;s open-source code: page URLs, domain names, page content or text snapshots, element selectors, monitor labels, keywords, webhook URLs, API keys, or anything typed into the extension.</p>
 <p><strong>PagePulse has no server component of its own.</strong> All baseline functionality runs entirely within your browser. The optional features described in section 5 (AI summaries, Webhooks, cross-device Sync) connect your browser directly to destinations you explicitly configure — PagePulse never proxies, intercepts, or stores those communications.</p>
 
 <h2>3. Permissions Explained</h2>
@@ -98,7 +102,7 @@
 <p>For Single-Page Application (SPA) sites or pages that require a JavaScript runtime, PagePulse renders the page in a hidden offscreen iframe (Chrome 116+) or, as a fallback, a tiny off-screen popup window. The user&rsquo;s normal browsing cookies for the target site may be used during this render &mdash; this is required to monitor pages that need authentication. No data leaves the browser as a result of rendering.</p>
 
 <h2>6. Data Sharing</h2>
-<p>PagePulse, as a publisher, does <strong>not</strong> share, sell, rent, or transfer your data. We do not collect any data &mdash; we have nothing to share. The opt-in features above transmit data to destinations <em>you</em> select; whatever you transmit is governed by your relationship with that destination, not with PagePulse.</p>
+<p>PagePulse, as a publisher, does <strong>not</strong> share, sell, rent, or transfer your data. Beyond the anonymous usage statistics described in section 2.1 (which contain no personal data or browsing information), we collect nothing. The opt-in features above transmit data to destinations <em>you</em> select; whatever you transmit is governed by your relationship with that destination, not with PagePulse.</p>
 
 <h2>7. Children's Privacy</h2>
 <p>PagePulse is not directed at children under the age of 13. We do not knowingly collect personal information from children. Since no personal information is collected from any user, this policy applies equally to all ages.</p>

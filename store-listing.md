@@ -52,7 +52,7 @@ MORE FEATURES
 - First-run onboarding to walk you through your first monitor
 
 PRIVACY
-Local-first by default. All baseline functionality runs entirely in your browser — PagePulse has no server. No accounts. No tracking. No analytics. Host access is requested per-site only when you create a monitor.
+Local-first by default. All baseline functionality runs entirely in your browser — PagePulse has no server. No accounts. Page URLs, page content, and selectors never leave your device. Host access is requested per-site only when you create a monitor. Anonymous usage statistics (feature counts and reliability signals only, keyed to a random ID — never your browsing data) help us improve PagePulse; turn them off any time in the dashboard footer.
 
 The three optional power features above transmit data only to destinations you choose: Chrome's built-in encrypted Sync, the LLM provider you select with your own API key, and webhook URLs you paste. PagePulse never proxies, intercepts, or stores any of that traffic. Each feature is off until you turn it on.
 

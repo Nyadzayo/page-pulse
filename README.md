@@ -44,7 +44,7 @@ npm test             # run tests (84 tests)
 
 ## Privacy
 
-All data is stored locally on your device using `chrome.storage.local`. No data is sent to any external server. No accounts, no analytics, no tracking. [Full privacy policy](https://nyadzayo.github.io/page-pulse/privacy-policy.html).
+All monitor data is stored locally on your device using `chrome.storage.local`. Page URLs, page content, and selectors are never transmitted anywhere. No accounts. Anonymous usage statistics (feature counts and reliability signals only — enforced by an allowlist in `src/lib/telemetry.js`) are only active in builds where `src/lib/telemetryConfig.js` is populated, and can be turned off in the dashboard footer. [Full privacy policy](https://nyadzayo.github.io/page-pulse/privacy-policy.html).
 
 ## License
 
