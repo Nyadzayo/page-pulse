@@ -50,6 +50,7 @@ export const EVENT_SCHEMA = {
   first_monitor_created: ['hours_since_install', 'render_mode'],
   monitor_check_completed: ['checks', 'failures', 'changes'],
   monitor_check_failed: ['reason'],
+  monitor_noisy: ['streak'],
   change_detected: ['count'],
   first_change_detected: ['hours_since_install'],
   notification_sent: ['kind', 'count'],

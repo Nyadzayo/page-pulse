@@ -1,5 +1,5 @@
 import { getMonitors, getSettings, updateMonitor, saveMonitor, appendHistory, getMonitor, getPendingDigest, addPendingDigest, clearPendingDigest, runMigrations } from './lib/storage.js';
-import { filterDueMonitors, groupByUrl, evaluateCheck, limitUrlBatch } from './lib/scheduler.js';
+import { filterDueMonitors, groupByUrl, evaluateCheck, limitUrlBatch, isNoisyMonitor } from './lib/scheduler.js';
 import { hasOriginAccess, extractOrigin } from './lib/permissions.js';
 import { notifyBatch, updateBadge, createBrokenMonitorNotification } from './lib/notifications.js';
 import { makeMonitor } from './lib/monitor.js';
@@ -13,7 +13,7 @@ import {
   pushConfigsToSync,
   pullConfigsFromSync,
 } from './lib/configSync.js';
-import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, HEARTBEAT_ALARM_NAME, HEARTBEAT_PERIOD_MINUTES, NOTIFY_MODES, RENDER_MODES } from './lib/constants.js';
+import { ALARM_NAME, ALARM_PERIOD_MINUTES, STATUS, TIERS, TIER_LIMITS, STORAGE_KEYS, DIGEST_ALARM_NAME, HEARTBEAT_ALARM_NAME, HEARTBEAT_PERIOD_MINUTES, NOISY_CHANGE_THRESHOLD, NOTIFY_MODES, RENDER_MODES } from './lib/constants.js';
 import { trackEvent, trackOnce, trackError, getHoursSinceInstall, INSTALLED_AT_KEY } from './lib/telemetry.js';
 
 // SPA / JS-rendered pages are loaded into a hidden iframe inside the
@@ -26,10 +26,29 @@ import { trackEvent, trackOnce, trackError, getHoursSinceInstall, INSTALLED_AT_K
 // attention" notification.
 
 // --- Alarm Setup + Context Menu ---
+// chrome.alarms.create() with an existing name RESETS its countdown. The
+// heartbeat fires 24h after creation, so recreating it on every browser
+// startup meant users who restart Chrome daily never emitted a heartbeat
+// (and digests were delayed by up to an hour per restart). Only (re)create
+// when the alarm is missing or its period changed in an update.
+async function ensureAlarm(name, opts) {
+  try {
+    const existing = await chrome.alarms.get(name);
+    if (existing && existing.periodInMinutes === opts.periodInMinutes) return;
+  } catch {
+    // get() failed — fall through and create
+  }
+  chrome.alarms.create(name, opts);
+}
+
+async function ensureAllAlarms() {
+  await ensureAlarm(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
+  await ensureAlarm(DIGEST_ALARM_NAME, { periodInMinutes: 60 });
+  await ensureAlarm(HEARTBEAT_ALARM_NAME, { periodInMinutes: HEARTBEAT_PERIOD_MINUTES });
+}
+
 chrome.runtime.onInstalled.addListener(async (details) => {
-  chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
-  chrome.alarms.create(DIGEST_ALARM_NAME, { periodInMinutes: 60 });
-  chrome.alarms.create(HEARTBEAT_ALARM_NAME, { periodInMinutes: HEARTBEAT_PERIOD_MINUTES });
+  await ensureAllAlarms();
 
   // Right-click context menu
   chrome.contextMenus.create({
@@ -62,9 +81,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
-  chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
-  chrome.alarms.create(DIGEST_ALARM_NAME, { periodInMinutes: 60 });
-  chrome.alarms.create(HEARTBEAT_ALARM_NAME, { periodInMinutes: HEARTBEAT_PERIOD_MINUTES });
+  await ensureAllAlarms();
   try { await runMigrations(); } catch (e) { console.error('[PagePulse] Migration failed:', e); trackError('migration', e); }
   try { await pullAndMergeSync(); } catch (e) { console.error('[PagePulse] sync pull failed:', e); trackError('sync_pull', e); }
 });
@@ -258,7 +275,13 @@ async function runTick() {
         await appendHistory(monitor.id, outcome.historyEntry, settings.tier);
         // F5A — increment unread counter for sidebar dot + browser-action badge
         outcome.monitorUpdates.unreadChangeCount = (monitor.unreadChangeCount || 0) + 1;
-        changes.push({ monitor, newValue: outcome.historyEntry.new });
+        // Carry the post-check state (consecutiveChanges) so the
+        // notification split below can detect noisy monitors.
+        changes.push({ monitor: { ...monitor, ...outcome.monitorUpdates }, newValue: outcome.historyEntry.new });
+        // Fire once at the exact threshold crossing, not on every noisy tick.
+        if (outcome.monitorUpdates.consecutiveChanges === NOISY_CHANGE_THRESHOLD) {
+          trackEvent('monitor_noisy', { streak: outcome.monitorUpdates.consecutiveChanges });
+        }
         // Path A — fire user-configured webhook (Slack/Discord/Zapier/etc.)
         // off the change event. Best-effort, no retries; failures logged
         // but don't affect the rest of the tick.
@@ -302,11 +325,14 @@ async function runTick() {
   if (changes.length > 0) {
     console.log(`[PagePulse] ${changes.length} change(s) detected, notificationsEnabled: ${settings.notificationsEnabled}`);
     if (settings.notificationsEnabled) {
-      // Split changes into instant vs digest
+      // Split changes into instant vs digest. Noisy monitors (changing on
+      // every consecutive check) are demoted to the digest regardless of
+      // their notifyMode — an hourly summary instead of a notification
+      // storm. An unchanged check resets the streak and restores instant.
       const instantChanges = [];
       for (const change of changes) {
         const mode = change.monitor.notifyMode || NOTIFY_MODES.INSTANT;
-        if (mode === NOTIFY_MODES.DIGEST) {
+        if (mode === NOTIFY_MODES.DIGEST || isNoisyMonitor(change.monitor)) {
           await addPendingDigest({
             monitorId: change.monitor.id,
             label: change.monitor.label,
@@ -388,13 +414,15 @@ async function runDigest() {
 }
 
 // --- Notification Click Handler ---
-chrome.notifications.onClicked.addListener((notificationId) => {
+chrome.notifications.onClicked.addListener(async (notificationId) => {
   const dashboardUrl = chrome.runtime.getURL('dashboard.html');
   const kind = notificationId.startsWith('pagepulse-broken-') ? 'broken'
     : notificationId.startsWith('pagepulse-digest-') ? 'digest'
     : notificationId.includes('batch') ? 'batch'
     : 'change';
-  trackEvent('notification_clicked', { kind });
+  // Awaited: the SW can shut down right after tabs.create, and an
+  // un-awaited fetch here is how clicks get silently dropped.
+  await trackEvent('notification_clicked', { kind });
   if (notificationId.startsWith('pagepulse-broken-')) {
     // H1 — broken-monitor notification: open dashboard with a
     // ?action=reselect prompt for that monitor.

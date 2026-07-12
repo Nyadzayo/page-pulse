@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateCheck } from '../../src/lib/scheduler.js';
-import { STATUS, BROKEN_THRESHOLD, BROKEN_WINDOW_MS } from '../../src/lib/constants.js';
+import { evaluateCheck, isNoisyMonitor } from '../../src/lib/scheduler.js';
+import { STATUS, BROKEN_THRESHOLD, BROKEN_WINDOW_MS, NOISY_CHANGE_THRESHOLD } from '../../src/lib/constants.js';
 
 describe('evaluateCheck (CheckOutcome)', () => {
   describe('shape', () => {
@@ -103,6 +103,49 @@ describe('evaluateCheck (CheckOutcome)', () => {
         now,
       );
       expect(outcome.monitorUpdates.status).toBe(STATUS.BROKEN);
+    });
+  });
+
+  describe('noisy-monitor tracking', () => {
+    const base = {
+      id: 'm1', baseline: 'a', status: STATUS.OK,
+      consecutiveErrors: 0, firstErrorAt: null, changeCount: 0,
+    };
+
+    it('increments consecutiveChanges on each changed check', () => {
+      const outcome = evaluateCheck(
+        { ...base, consecutiveChanges: 1 },
+        { monitorId: 'm1', text: 'b', matchedBy: 'selector' },
+        Date.now(),
+      );
+      expect(outcome.changed).toBe(true);
+      expect(outcome.monitorUpdates.consecutiveChanges).toBe(2);
+    });
+
+    it('resets consecutiveChanges to 0 on an unchanged check', () => {
+      const outcome = evaluateCheck(
+        { ...base, consecutiveChanges: 5 },
+        { monitorId: 'm1', text: 'a', matchedBy: 'selector' },
+        Date.now(),
+      );
+      expect(outcome.changed).toBe(false);
+      expect(outcome.monitorUpdates.consecutiveChanges).toBe(0);
+    });
+
+    it('treats a missing consecutiveChanges field as 0 (legacy monitors)', () => {
+      const outcome = evaluateCheck(
+        base,
+        { monitorId: 'm1', text: 'b', matchedBy: 'selector' },
+        Date.now(),
+      );
+      expect(outcome.monitorUpdates.consecutiveChanges).toBe(1);
+    });
+
+    it('isNoisyMonitor flips at the threshold and not below', () => {
+      expect(isNoisyMonitor({ consecutiveChanges: NOISY_CHANGE_THRESHOLD - 1 })).toBe(false);
+      expect(isNoisyMonitor({ consecutiveChanges: NOISY_CHANGE_THRESHOLD })).toBe(true);
+      expect(isNoisyMonitor({ consecutiveChanges: NOISY_CHANGE_THRESHOLD + 4 })).toBe(true);
+      expect(isNoisyMonitor({})).toBe(false);
     });
   });
 

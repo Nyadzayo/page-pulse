@@ -5,6 +5,7 @@ import { PROVIDER_PRESETS, summarizeChange, isAiEnabled } from './lib/aiSummary.
 import { shouldShowOnboarding, markOnboardingSeen } from './lib/onboarding.js';
 import { buildRssFeed, monitorToFeedItems } from './lib/rssFeed.js';
 import { INTERVALS, TIER_LIMITS, DIFF_MODES, NOTIFY_MODES, STATUS } from './lib/constants.js';
+import { isNoisyMonitor } from './lib/scheduler.js';
 import { initTheme, toggleTheme, getTheme, sunIcon, moonIcon } from './lib/theme.js';
 import { playChime } from './lib/sound.js';
 import { trackEvent, trackOnce } from './lib/telemetry.js';
@@ -317,6 +318,7 @@ async function loadSidebar() {
       m.status === 'permission_revoked' ? 'No access' :
       !m.lastChecked ? 'Pending' :
       (Date.now() - m.lastChecked > (m.intervalMs || 3600000) * 3) ? 'Stale' :
+      isNoisyMonitor(m) ? 'Noisy' :
       (m.consecutiveErrors > 0) ? 'Flaky' : '';
     const pausedTag = !m.active ? '<span class="ds-paused">PAUSED</span>' : '';
     const unread = m.unreadChangeCount || 0;
@@ -397,6 +399,8 @@ async function selectMonitor(id) {
     healthHtml = '<span class="health-warn">Pending</span><div class="health-detail">Not checked yet</div>';
   } else if (timeSinceCheck > expectedInterval * 3) {
     healthHtml = '<span class="health-warn">Stale</span><div class="health-detail">Overdue by ' + timeAgo(monitor.lastChecked) + '</div>';
+  } else if (isNoisyMonitor(monitor)) {
+    healthHtml = '<span class="health-warn">Noisy</span><div class="health-detail">Changes every check — alerts moved to hourly digest. Add an ignore pattern or re-select a steadier element.</div>';
   } else if (errors > 0) {
     healthHtml = '<span class="health-warn">Flaky</span><div class="health-detail">' + errors + ' recent error' + (errors > 1 ? 's' : '') + '</div>';
   } else {

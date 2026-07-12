@@ -1,4 +1,4 @@
-import { STATUS, BROKEN_THRESHOLD, BROKEN_WINDOW_MS, MAX_URLS_PER_TICK } from './constants.js';
+import { STATUS, BROKEN_THRESHOLD, BROKEN_WINDOW_MS, MAX_URLS_PER_TICK, NOISY_CHANGE_THRESHOLD } from './constants.js';
 import { hasMeaningfulChange, matchesKeyword, applyIgnorePatterns } from './differ.js';
 
 export function filterDueMonitors(monitors, now) {
@@ -87,6 +87,7 @@ export function evaluateCheck(monitor, result, now) {
         ...base,
         baseline: result.text,
         changeCount: monitor.changeCount + 1,
+        consecutiveChanges: (monitor.consecutiveChanges || 0) + 1,
         lastChanged: now,
       },
     };
@@ -97,8 +98,19 @@ export function evaluateCheck(monitor, result, now) {
   return {
     changed: false,
     historyEntry: null,
-    monitorUpdates: { ...base, ...(baselineChanged ? { baseline: result.text } : {}) },
+    monitorUpdates: { ...base, consecutiveChanges: 0, ...(baselineChanged ? { baseline: result.text } : {}) },
   };
+}
+
+/**
+ * A monitor is "noisy" once it has changed on NOISY_CHANGE_THRESHOLD
+ * consecutive checks — near-certain sign it's tracking churning content
+ * (timestamps, counters, rotating modules) rather than a meaningful
+ * signal. Callers downgrade its instant notifications to the digest and
+ * surface a "Noisy" health state until an unchanged check resets it.
+ */
+export function isNoisyMonitor(monitorLike) {
+  return (monitorLike.consecutiveChanges || 0) >= NOISY_CHANGE_THRESHOLD;
 }
 
 /**

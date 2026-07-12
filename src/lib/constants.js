@@ -34,6 +34,14 @@ export const TIER_LIMITS = {
   },
 };
 
+// A monitor whose content differs on this many consecutive checks has
+// latched onto churning content (timestamps, counters, rotating modules).
+// Field data: ~97% of checks produced a "change" for such monitors —
+// 83 notifications per user in two days, zero clicked. Once noisy,
+// instant notifications fall back to the hourly digest until the
+// content stabilizes or the user fixes the selection.
+export const NOISY_CHANGE_THRESHOLD = 3;
+
 export const MAX_URLS_PER_TICK = 10;
 export const MAX_NOTIFICATIONS_PER_TICK = 5;
 export const BROKEN_WINDOW_MS = 86400000;
