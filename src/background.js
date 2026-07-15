@@ -247,65 +247,70 @@ async function runTick() {
       results = await queryOffscreen(html, queries);
     }
 
-    // Process results
+    // Process results. Each monitor is isolated: a throw while processing
+    // one must not abort the tick and starve every monitor after it.
     for (const result of results) {
-      const monitor = monitorsForUrl.find((m) => m.id === result.monitorId);
-      if (!monitor) continue;
+      try {
+        const monitor = monitorsForUrl.find((m) => m.id === result.monitorId);
+        if (!monitor) continue;
 
-      // F2 — when the render path returned null text with no matchedBy, treat
-      // it as a check failure (increments consecutiveErrors → BROKEN after 3).
-      // This prevents Twitter/SPA-blocked-iframe ticks from clobbering baseline
-      // with empty strings.
-      const isEmptyExtraction = result.text === null && result.matchedBy === null;
-      const outcome = evaluateCheck(monitor, isEmptyExtraction ? null : result, now);
-      tickStats.checks += 1;
-      if (outcome.monitorUpdates.consecutiveErrors > 0) tickStats.failures += 1;
+        // F2 — evaluateCheck treats null text / null matchedBy as a check
+        // failure (increments consecutiveErrors → BROKEN after 3). This
+        // prevents Twitter/SPA-blocked-iframe ticks from clobbering baseline
+        // with empty strings.
+        const outcome = evaluateCheck(monitor, result, now);
+        tickStats.checks += 1;
+        if (outcome.monitorUpdates.consecutiveErrors > 0) tickStats.failures += 1;
 
-      if (result.matchedBy === 'fingerprint' && result.recoveredSelector) {
-        console.log(`[PagePulse] Selector recovered for "${monitor.label}": ${monitor.selector} → ${result.recoveredSelector}`);
-        outcome.monitorUpdates.selector = result.recoveredSelector;
-      }
-
-      if (outcome.changed && outcome.historyEntry) {
-        console.log(`[PagePulse] Change detected: "${monitor.label}" — old: "${outcome.historyEntry.old?.substring(0, 50)}" → new: "${outcome.historyEntry.new?.substring(0, 50)}"`);
-
-        // AI summaries are user-triggered only (per-entry "Generate
-        // summary" button in the dashboard). No auto-call here — saves
-        // tokens and keeps the tick fast.
-        await appendHistory(monitor.id, outcome.historyEntry, settings.tier);
-        // F5A — increment unread counter for sidebar dot + browser-action badge
-        outcome.monitorUpdates.unreadChangeCount = (monitor.unreadChangeCount || 0) + 1;
-        // Carry the post-check state (consecutiveChanges) so the
-        // notification split below can detect noisy monitors.
-        changes.push({ monitor: { ...monitor, ...outcome.monitorUpdates }, newValue: outcome.historyEntry.new });
-        // Fire once at the exact threshold crossing, not on every noisy tick.
-        if (outcome.monitorUpdates.consecutiveChanges === NOISY_CHANGE_THRESHOLD) {
-          trackEvent('monitor_noisy', { streak: outcome.monitorUpdates.consecutiveChanges });
+        if (result.matchedBy === 'fingerprint' && result.recoveredSelector) {
+          console.log(`[PagePulse] Selector recovered for "${monitor.label}": ${monitor.selector} → ${result.recoveredSelector}`);
+          outcome.monitorUpdates.selector = result.recoveredSelector;
         }
-        // Path A — fire user-configured webhook (Slack/Discord/Zapier/etc.)
-        // off the change event. Best-effort, no retries; failures logged
-        // but don't affect the rest of the tick.
-        if (monitor.webhookUrl) {
-          fireWebhook(monitor.webhookUrl, monitor, outcome.historyEntry)
-            .then((ok) => {
-              if (!ok) console.warn(`[PagePulse] Webhook failed for "${monitor.label}"`);
-            });
-        }
-      } else {
-        console.log(`[PagePulse] No change for "${monitor.label}" (matched by: ${result.matchedBy})`);
-      }
 
-      if (shouldFireBrokenNotification(monitor, outcome.monitorUpdates)) {
-        try {
-          await createBrokenMonitorNotification({ ...monitor, ...outcome.monitorUpdates });
-          trackEvent('monitor_check_failed', { reason: 'selector_broken' });
-          trackEvent('notification_sent', { kind: 'broken', count: 1 });
-        } catch (e) {
-          console.error('[PagePulse] Broken notification failed:', e);
-        }
-      }
+        if (outcome.changed && outcome.historyEntry) {
+          console.log(`[PagePulse] Change detected: "${monitor.label}" — old: "${outcome.historyEntry.old?.substring(0, 50)}" → new: "${outcome.historyEntry.new?.substring(0, 50)}"`);
 
-      await updateMonitor(monitor.id, outcome.monitorUpdates);
+          // AI summaries are user-triggered only (per-entry "Generate
+          // summary" button in the dashboard). No auto-call here — saves
+          // tokens and keeps the tick fast.
+          await appendHistory(monitor.id, outcome.historyEntry, settings.tier);
+          // F5A — increment unread counter for sidebar dot + browser-action badge
+          outcome.monitorUpdates.unreadChangeCount = (monitor.unreadChangeCount || 0) + 1;
+          // Carry the post-check state (consecutiveChanges) so the
+          // notification split below can detect noisy monitors.
+          changes.push({ monitor: { ...monitor, ...outcome.monitorUpdates }, newValue: outcome.historyEntry.new });
+          // Fire once at the exact threshold crossing, not on every noisy tick.
+          if (outcome.monitorUpdates.consecutiveChanges === NOISY_CHANGE_THRESHOLD) {
+            trackEvent('monitor_noisy', { streak: outcome.monitorUpdates.consecutiveChanges });
+          }
+          // Path A — fire user-configured webhook (Slack/Discord/Zapier/etc.)
+          // off the change event. Best-effort, no retries; failures logged
+          // but don't affect the rest of the tick.
+          if (monitor.webhookUrl) {
+            fireWebhook(monitor.webhookUrl, monitor, outcome.historyEntry)
+              .then((ok) => {
+                if (!ok) console.warn(`[PagePulse] Webhook failed for "${monitor.label}"`);
+              });
+          }
+        } else {
+          console.log(`[PagePulse] No change for "${monitor.label}" (matched by: ${result.matchedBy})`);
+        }
+
+        if (shouldFireBrokenNotification(monitor, outcome.monitorUpdates)) {
+          try {
+            await createBrokenMonitorNotification({ ...monitor, ...outcome.monitorUpdates });
+            trackEvent('monitor_check_failed', { reason: 'selector_broken' });
+            trackEvent('notification_sent', { kind: 'broken', count: 1 });
+          } catch (e) {
+            console.error('[PagePulse] Broken notification failed:', e);
+          }
+        }
+
+        await updateMonitor(monitor.id, outcome.monitorUpdates);
+      } catch (e) {
+        console.error('[PagePulse] Check processing failed for monitor', result.monitorId, e);
+        trackError('tick_monitor', e);
+      }
     }
   }
 

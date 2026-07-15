@@ -89,6 +89,19 @@ describe('evaluateCheck (CheckOutcome)', () => {
       expect(outcome.monitorUpdates.status).toBe(STATUS.OK);
     });
 
+    it('treats a literal null result as a failed check instead of throwing', () => {
+      const now = Date.now();
+      const monitor = {
+        id: 'm1', baseline: 'x', status: STATUS.OK,
+        consecutiveErrors: 0, firstErrorAt: null, changeCount: 0,
+      };
+      const outcome = evaluateCheck(monitor, null, now);
+      expect(outcome.changed).toBe(false);
+      expect(outcome.historyEntry).toBeNull();
+      expect(outcome.monitorUpdates.consecutiveErrors).toBe(1);
+      expect(outcome.monitorUpdates.firstErrorAt).toBe(now);
+    });
+
     it('marks as broken after threshold over the broken window', () => {
       const now = Date.now();
       const monitor = {

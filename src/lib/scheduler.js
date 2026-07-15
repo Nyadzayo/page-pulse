@@ -41,7 +41,7 @@ export function limitUrlBatch(urlGroups) {
  * @returns {CheckOutcome}
  */
 export function evaluateCheck(monitor, result, now) {
-  if (result.text === null || result.matchedBy === null) {
+  if (!result || result.text === null || result.matchedBy === null) {
     const newErrorCount = (monitor.consecutiveErrors || 0) + 1;
     const firstError = monitor.firstErrorAt || now;
     // BROKEN as soon as we hit threshold consecutive errors.
