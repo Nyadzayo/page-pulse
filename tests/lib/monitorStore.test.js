@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { MonitorStore } from '../../src/lib/storage.js';
-import { STORAGE_KEYS, TIERS } from '../../src/lib/constants.js';
+import {
+  STORAGE_KEYS,
+  TIERS,
+  MAX_HISTORY_ENTRIES,
+  QUOTA_FALLBACK_HISTORY_ENTRIES,
+} from '../../src/lib/constants.js';
 
 describe('MonitorStore', () => {
   let store;
@@ -97,6 +102,34 @@ describe('MonitorStore', () => {
       const history = await store.getHistory('m1');
       expect(history).toHaveLength(1);
       expect(history[0].new).toBe('c');
+    });
+
+    it('caps history at MAX_HISTORY_ENTRIES even inside the retention window', async () => {
+      const now = Date.now();
+      const key = STORAGE_KEYS.HISTORY_PREFIX + 'm1';
+      const entries = Array.from({ length: MAX_HISTORY_ENTRIES + 50 }, (_, i) => ({
+        ts: now - (MAX_HISTORY_ENTRIES + 50 - i) * 1000, old: 'a', new: `v${i}`,
+      }));
+      chrome.storage.local._store[key] = entries;
+      await store.appendHistory('m1', { ts: now, old: 'x', new: 'newest' }, TIERS.FREE);
+      const history = await store.getHistory('m1');
+      expect(history).toHaveLength(MAX_HISTORY_ENTRIES);
+      expect(history[history.length - 1].new).toBe('newest');
+    });
+
+    it('shrinks to the fallback cap and retries when the write exceeds quota', async () => {
+      const now = Date.now();
+      const key = STORAGE_KEYS.HISTORY_PREFIX + 'm1';
+      chrome.storage.local._store[key] = Array.from({ length: 100 }, (_, i) => ({
+        ts: now - (100 - i) * 1000, old: 'a', new: `v${i}`,
+      }));
+      chrome.storage.local.set.mockRejectedValueOnce(
+        new Error('Resource::kQuotaBytes quota exceeded'),
+      );
+      await store.appendHistory('m1', { ts: now, old: 'x', new: 'newest' }, TIERS.FREE);
+      const history = await store.getHistory('m1');
+      expect(history).toHaveLength(QUOTA_FALLBACK_HISTORY_ENTRIES);
+      expect(history[history.length - 1].new).toBe('newest');
     });
   });
 

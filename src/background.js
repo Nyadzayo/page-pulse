@@ -88,12 +88,18 @@ chrome.runtime.onStartup.addListener(async () => {
 
 // --- Offscreen Document Management ---
 async function ensureOffscreen({ withIframe = false } = {}) {
-  const contexts = await chrome.runtime.getContexts({
-    contextTypes: ['OFFSCREEN_DOCUMENT'],
-  });
-  if (contexts.length === 0) {
-    const reasons = ['DOM_PARSER', 'AUDIO_PLAYBACK'];
-    if (withIframe) reasons.push('IFRAME_SCRIPTING');
+  // chrome.runtime.getContexts requires Chrome 116+ (the offscreen API
+  // itself only needs 109). On older Chrome, skip the existence check and
+  // let createDocument's "already exists" rejection stand in for it.
+  if (chrome.runtime.getContexts) {
+    const contexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT'],
+    });
+    if (contexts.length > 0) return;
+  }
+  const reasons = ['DOM_PARSER', 'AUDIO_PLAYBACK'];
+  if (withIframe) reasons.push('IFRAME_SCRIPTING');
+  try {
     await chrome.offscreen.createDocument({
       url: 'offscreen.html',
       reasons,
@@ -101,6 +107,8 @@ async function ensureOffscreen({ withIframe = false } = {}) {
         ? 'Parse fetched HTML, play notification sounds, and render JS-driven SPA pages in a hidden iframe.'
         : 'Parse fetched HTML and play notification sounds',
     });
+  } catch (e) {
+    if (!/single offscreen/i.test(String(e?.message || e))) throw e;
   }
 }
 

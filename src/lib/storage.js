@@ -1,4 +1,10 @@
-import { STORAGE_KEYS, DEFAULT_SETTINGS, TIER_LIMITS } from './constants.js';
+import {
+  STORAGE_KEYS,
+  DEFAULT_SETTINGS,
+  TIER_LIMITS,
+  MAX_HISTORY_ENTRIES,
+  QUOTA_FALLBACK_HISTORY_ENTRIES,
+} from './constants.js';
 import { migrateMonitor } from './monitor.js';
 
 /**
@@ -53,8 +59,16 @@ export class MonitorStore {
     const retentionMs = TIER_LIMITS[tier].historyRetentionMs;
     const latestTs = Math.max(...history.map((e) => e.ts));
     const cutoff = latestTs - retentionMs;
-    const pruned = history.filter((e) => e.ts >= cutoff);
-    await chrome.storage.local.set({ [key]: pruned });
+    const pruned = history.filter((e) => e.ts >= cutoff).slice(-MAX_HISTORY_ENTRIES);
+    try {
+      await chrome.storage.local.set({ [key]: pruned });
+    } catch (e) {
+      // Quota exceeded: replacing this key with a much smaller value frees
+      // space, so retry with only the newest entries instead of leaving
+      // the monitor's history permanently unwritable.
+      console.warn(`[PagePulse] History write failed for ${monitorId}, shrinking:`, e?.message || e);
+      await chrome.storage.local.set({ [key]: pruned.slice(-QUOTA_FALLBACK_HISTORY_ENTRIES) });
+    }
   }
 
   async updateHistoryEntry(monitorId, ts, patch) {

@@ -34,6 +34,16 @@ export const TIER_LIMITS = {
   },
 };
 
+// Hard caps on stored history per monitor, on top of time-based retention.
+// storage.local has a 10MB quota (no unlimitedStorage permission) and a
+// noisy monitor with large text changing every tick can fill it well
+// inside the retention window — after which every write throws
+// kQuotaBytes forever. Field data: one user generated 1.9K quota errors
+// in a week. The fallback cap is what we shrink to when a write still
+// exceeds quota.
+export const MAX_HISTORY_ENTRIES = 200;
+export const QUOTA_FALLBACK_HISTORY_ENTRIES = 20;
+
 // A monitor whose content differs on this many consecutive checks has
 // latched onto churning content (timestamps, counters, rotating modules).
 // Field data: ~97% of checks produced a "change" for such monitors —
