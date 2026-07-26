@@ -192,11 +192,29 @@ export async function trackOnce(eventName, params = {}) {
   }
 }
 
+const ERR_COUNT_KEY = 'telemetryErrCount';
+const MAX_ERRORS_PER_CONTEXT_PER_DAY = 20;
+
 /**
  * Record a runtime failure. `message` is truncated and must already be
  * free of page data — pass error.message, never page content or URLs.
+ * Rate-limited per context per day: a fault repeating every tick must not
+ * flood analytics (field data: unthrottled repeats produced 20K+ events
+ * from a handful of users). The first N occurrences carry all the signal.
  */
 export async function trackError(context, error) {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const stored = await chrome.storage.local.get(ERR_COUNT_KEY);
+    let bucket = stored[ERR_COUNT_KEY];
+    if (!bucket || bucket.date !== today) bucket = { date: today, counts: {} };
+    const n = (bucket.counts[context] || 0) + 1;
+    bucket.counts[context] = n;
+    await chrome.storage.local.set({ [ERR_COUNT_KEY]: bucket });
+    if (n > MAX_ERRORS_PER_CONTEXT_PER_DAY) return false;
+  } catch {
+    // counting failed — still report the error itself
+  }
   const message = String((error && error.message) || error || 'unknown').slice(0, MAX_STRING_LENGTH);
   return trackEvent('extension_error', { context, message });
 }

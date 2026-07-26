@@ -99,16 +99,26 @@ async function ensureOffscreen({ withIframe = false } = {}) {
   }
   const reasons = ['DOM_PARSER', 'AUDIO_PLAYBACK'];
   if (withIframe) reasons.push('IFRAME_SCRIPTING');
+  const justification = withIframe
+    ? 'Parse fetched HTML, play notification sounds, and render JS-driven SPA pages in a hidden iframe.'
+    : 'Parse fetched HTML and play notification sounds';
+  const create = (r) =>
+    chrome.offscreen.createDocument({ url: 'offscreen.html', reasons: r, justification });
   try {
-    await chrome.offscreen.createDocument({
-      url: 'offscreen.html',
-      reasons,
-      justification: withIframe
-        ? 'Parse fetched HTML, play notification sounds, and render JS-driven SPA pages in a hidden iframe.'
-        : 'Parse fetched HTML and play notification sounds',
-    });
+    await create(reasons);
   } catch (e) {
-    if (!/single offscreen/i.test(String(e?.message || e))) throw e;
+    const msg = String(e?.message || e);
+    if (/single `?reason`?/i.test(msg)) {
+      // Chrome <114 accepts only one reason. DOM_PARSER is the one extraction
+      // needs; sounds/iframe-render degrade gracefully there.
+      try {
+        await create(['DOM_PARSER']);
+      } catch (e2) {
+        if (!/single offscreen/i.test(String(e2?.message || e2))) throw e2;
+      }
+    } else if (!/single offscreen/i.test(msg)) {
+      throw e;
+    }
   }
 }
 
